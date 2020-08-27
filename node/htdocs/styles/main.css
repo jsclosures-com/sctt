@@ -1,0 +1,275 @@
+p, h1, form, button{border:0; margin:0; padding:0;}
+.spacer{clear:both; height:1px;}
+
+
+pre {
+ white-space: pre-wrap;       /* css-3 */
+ white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+ white-space: -pre-wrap;      /* Opera 4-6 */
+ white-space: -o-pre-wrap;    /* Opera 7 */
+ word-wrap: break-word;       /* Internet Explorer 5.5+ */
+}
+
+.none{}
+html, #mainapp {
+    height: 100%;
+    width: 100%;
+}
+body 
+{
+    margin-top: 0.0cm; 
+    margin-right: 0.0cm; 
+    margin-left: 0.0cm; 
+    margin-bottom: 0.0cm; 
+    font-family:"Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+    font-size:12px;
+    scrollbar-face-color: #999;
+    scrollbar-shadow-color: #bbb;
+    scrollbar-highlight-color:#ddd;
+    scrollbar-3dlight-color: #ccc;
+    scrollbar-darkshadow-color: #bbb;
+    scrollbar-track-color: #ddd;
+    scrollbar-arrow-color: #999;
+    height: 100%;
+    padding: 0;
+    overflow:hidden;
+}
+
+.appfooterstatus {
+    padding: 2px;
+}
+.appfootermessage {
+    padding: 2px;
+
+}
+.appfooterversion {
+    padding: 2px;
+}
+
+.loginmessage {
+    color: #000;
+    border-bottom:1px solid #ccc;
+    font-size:14px;
+    font-family:Verdana, Geneva, Arial, Helvetica, sans-serif;
+    font-weight: plain;
+}
+.loginfooter {
+    color: #fff;
+    font-size:14px;
+    font-family:Verdana, Geneva, Arial, Helvetica, sans-serif;
+    font-weight: plain;
+    float: right;
+}
+.loginfooter a {
+    color: #ffffff;
+}
+.small_logo {
+    display: inline;
+    float: right;
+    width:133px;
+    height : 28px;
+    margin-top: 2px;
+    background: url('../images/logo.png') no-repeat 35% 23%;
+    float: right;
+}
+.large_logo
+{
+    margin-top: 0.0cm; 
+    margin-right: 0.0cm; 
+    margin-left: 0.0cm; 
+    margin-bottom: 0.0cm; 
+    padding-right: 10px;
+    border-right: 0px solid #262626;
+    width: 110px;
+    height: 23px;
+    background:url("../images/logo_large.png") top left no-repeat;
+}
+.logo
+{
+	margin-top: 0.0cm; 
+        margin-right: 0.0cm; 
+        margin-left: 0.0cm; 
+        margin-bottom: 0.0cm; 
+	padding: 0px;
+        width: 221px;
+        height: 28px;
+        background:url("../images/logo.png") top left no-repeat;
+        position: relative;
+}
+.secure{
+-webkit-text-security: disc;
+-moz-text-security: disc;
+text-security: disc;
+}
+
+.nonsecure{
+-webkit-text-security: none;
+-moz-text-security: none;
+text-security: none;
+}
+
+.modaldialog {
+    background: #c8c8c8;
+    border:1px solid #282828;
+    border-radius:8px;
+    -moz-border-radius:8px;
+    -webkit-border-radius:8px;
+    -moz-box-shadow:#282828 2px 2px 8px;
+    -webkit-box-shadow:#282828 2px 2px 8px;
+    -o-box-shadow:#282828 2px 2px 8px;
+    box-shadow:#282828 2px 2px 8px;
+    width: 100%;
+    height: 100%;
+    font-weight: bold;
+    color: #000;
+}
+
+.modaldialogcontainer {
+    width: 192px;
+    height: 92px;
+    padding: 4px;
+}
+
+
+.modaldialogok {
+        font-weight: bold;
+        border:1px solid #C8C8C8;
+        border-bottom:none;
+        background-color:#C8C8C8;
+        background-image: url("//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dijit/themes/claro/images/standardGradient.png");
+        background-position:0px 0px;
+        background-repeat:repeat-x;
+        min-height:17px;
+        color:#4a4a4a;
+        width: 60px;
+        
+        border: 1px solid #759dc0;
+        padding: 2px 4px 4px 4px;
+        color: #000000;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+        text-decoration: none;
+}
+
+.modaldialogreset {
+        font-weight: bold;
+        border:1px solid #C8C8C8;
+        border-bottom:none;
+        background-color:#C8C8C8;
+        background-image: url("//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dijit/themes/claro/images/standardGradient.png");
+        background-position:0px 0px;
+        background-repeat:repeat-x;
+        min-height:17px;
+        color:#4a4a4a;
+        width: 60px;
+        
+        border: 1px solid #759dc0;
+        padding: 2px 4px 4px 4px;
+        color: #000000;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+        text-decoration: none;
+}
+
+.modaldialogcancel {
+        font-weight: bold;
+        border:1px solid #C8C8C8;
+        border-bottom:none;
+        background-color:#C8C8C8;
+        background-image: url("//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dijit/themes/claro/images/standardGradient.png");
+        background-position:0px 0px;
+        background-repeat:repeat-x;
+        min-height:17px;
+        color:#4a4a4a;
+        width: 60px;
+        border: 1px solid #759dc0;
+        padding: 2px 4px 4px 4px;
+        color: #000000;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+        text-decoration: none;
+}
+
+.main {
+	
+}
+.input {
+	  border-radius: 12px;
+	  background: #fff;
+	  padding: 20px; 
+	  border: 0px solid black;
+}
+.message {
+	  border-radius: 12px;
+	  background: #fff;
+	  padding: 20px 20px 0px 20px; 
+	  border: 0px solid black;
+}
+.input input {
+	  padding: 5px;
+	 font-size: 16px;
+	 border-width: 1px;
+	 border-color: #CCCCCC;
+	 background-color: #FFFFFF;
+	 color: #000000;
+	 border-style: solid;
+	 border-radius: 12px;
+	 width: 100%;
+	 box-shadow: 0px 0px 5px rgba(66,66,66,.75);
+	 text-shadow: 0px 0px 5px rgba(66,66,66,.75);
+	 outline:none;
+}
+.result {
+}
+.resultleftside {
+	width: 49%;
+	float: left;
+}
+.resultrightside {
+	width: 49%;
+	float: right;
+}
+.section {
+	border-radius: 12px;
+	  background: #c0c0c0;
+	  padding-bottom: 20px; 
+	  padding-left: 20px; 
+	  padding-right: 20px;
+	  padding-top: 10px; 		  
+	  margin-top: 10px;
+	  overflow: auto;
+}
+.popup {
+	 padding: 5px;
+	 font-size: 16px;
+	 border-width: 1px;
+	 border-color: #CCCCCC;
+	 background-color: #FFFFFF;
+	 color: #000000;
+	 border-style: solid;
+	 border-radius: 2px;
+	 width: 100%;
+	 box-shadow: 0px 0px 5px rgba(66,66,66,.75);
+	 text-shadow: 0px 0px 5px rgba(66,66,66,.75);
+	 outline:none;
+	 overflow-y: auto;
+}
+.popupitem {
+	list-style-type: none;
+}
+.header {
+	background-color: #c0c0c0;
+	height: 20px;
+	width: 100%;
+	color: black;
+	padding: 10px;
+}
+.headerbutton {
+	height: 10px;
+	width: 10px;
+	color: black;
+	float: right;
+}
+
+
+

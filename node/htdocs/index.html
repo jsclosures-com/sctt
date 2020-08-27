@@ -1,0 +1,329 @@
+<!DOCTYPE HTML>
+<html dir="ltr">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=9,IE=8,IE=7,IE=EDGE" />
+<meta charset="UTF-8" />
+<meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+
+<script type="text/javascript">
+		  var djConfig = {
+                                   async : true,
+                                   parseOnLoad : false,
+                                   gfxRenderer: "svg,vml,silverlight",
+                                   dojoBlankHtmlUrl: 'blank.html',
+                                    packages: [],
+                                    baseUrl: '//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojo/',
+                                    modulePaths: {}
+                            }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.10.2/beautify.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojo/dojo.js" baseurl="./"crossorigin="anonymous"></script>
+
+<link href="styles/main.css" rel="stylesheet" type="text/css">
+<title>SRST</title>
+
+<style type="text/css">
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojo/resources/dojo.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dijit/themes/dijit.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dijit/themes/claro/claro.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojox/grid/resources/Grid.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojox/grid/enhanced/resources/claro/EnhancedGrid.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojox/grid/enhanced/resources/EnhancedGrid_rtl.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojox/layout/resources/FloatingPane.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojox/layout/resources/ResizeHandle.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojox/layout/resources/ExpandoPane.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dojox/widget/Dialog/Dialog.css";
+  @import "//ajax.googleapis.com/ajax/libs/dojo/1.11.2/dijit/themes/claro/layout/TabContainer.css";
+  @import "styles/main.css";
+ 
+</style>
+
+<script type="text/javascript">
+
+var WIDGETFACTORY = {
+	CURRENTCONTEXT: {},
+	merge: function(source,target){
+		for(let p in source){
+			if( source.hasOwnProperty(p) ){
+				target[p] = source[p];
+			}
+		}
+	},
+	setCurrentContext: function(c){ WIDGETFACTORY.CURRENTCONTEXT = c; },
+	getCurrentContext: function(){ return( WIDGETFACTORY.CURRENTCONTEXT ); },
+	addWidgetToContainer: function(args){
+		if( args.parent ){
+			if( args.insertBefore &&  args.parent.childNodes && args.parent.childNodes.length > 0 )
+				args.parent.insertBefore(args.child,args.parent.childNodes[0]);
+			else
+				args.parent.appendChild(args.child);
+		}
+		else {
+			for(var i = document.body.childNodes.length - 1; i >= 0; --i) {
+			  document.body.removeChild(document.body.childNodes[i]);
+			}
+			document.body.appendChild(args.child);
+		}
+	},
+	buildWidget: function(args) {
+		let result = document.createElement(args.which);
+		
+		if( result ){
+			for(let p in args){
+				if( p != 'which' ){
+					if( typeof(args[p]) == 'object' ){
+						for(let a in args[p]){
+							result[p][a] = args[p][a];
+						}
+					}
+					else if( p == 'innerHTML' ){
+						result.innerHTML = args[p];
+					}
+					else {
+						result.setAttribute(p,args[p]);
+					}
+				}
+			}
+			result.id = args.id ? args.id : "id" + new Date().getTime();
+		}
+		
+		return( result );
+	},
+	addHandler: function(args){
+		let result = args.widget;
+		
+		if( result && args.handler ){
+			if( typeof(args.handler) == 'object' ){
+				for(let h in args.handler){
+					if( args.handler[h].name == 'onenter' ){
+						let wrapper = function(event) {
+							if( event.preventDefault )
+								event.preventDefault();
+							  // Number 13 is the "Enter" key on the keyboard
+							  if (event.keyCode === 13) {
+								this.callback(event);
+							  }
+						}
+						if( !result.eventListenerList ){
+							result.eventListenerList = [];
+						}
+						let callback = wrapper.bind({callback: args.handler[h].callback});
+						result.eventListenerList.push({type: args.handler[h].name,callback: callback});
+						
+						result.addEventListener("keyup",callback);
+					}
+					else {
+						if( !result.eventListenerList ){
+							result.eventListenerList = [];
+						}
+						result.eventListenerList.push({type: args.handler[h].name,callback: args.handler[h].callback});
+						result.addEventListener(args.handler[h].name,args.handler[h].callback);
+					}
+				}
+			}
+		}
+		
+		return( result );
+	},
+	clearChildren: function(args){
+		let result = args.widget;
+		
+		if( result && result.childNodes ){
+			for(var i = result.childNodes.length - 1; i >= 0; --i) {
+			  result.removeChild(result.childNodes[i]);
+			}
+		}
+		
+		return( result );
+	},
+	removeHandler: function(args){
+		let result = args.widget;
+		
+		if( result && args.handler ){
+			if( typeof(args.handler) == 'object' ){
+				for(let h in args.handler){
+					result.removeEventListener(args.handler[h].name);
+					for(let e = result.eventListenerList.length -1;e >=0;e--){
+						if( result.eventListenerList[e].type == args.type ){
+							result.splice(e,1);
+						}
+					}
+				}
+			}
+		}
+		
+		return( result );
+	},
+	getHandler: function(args){
+		let result = [];
+		let widget = args.widget;
+		
+		if( widget.eventListenerList ){
+			for(let e in widget.eventListenerList){
+				if( widget.eventListenerList[e].type == args.type ){
+					result.push(widget.eventListenerList[e].callback);
+				}
+			}
+		}
+		
+		return( result );
+	},
+	setStyle: function(args){
+		let result = args.widget;
+		
+		if( result && args.style ){
+			if( typeof(args.style) == 'object' ){
+				for(let h in args.style){
+					result.style[h] = args.style[h];
+				}
+			}
+		}
+		
+		return( result );
+	},
+	showOptions: function(args){
+		let bbox = WIDGETFACTORY.getCurrentContext().searchBox.getBoundingClientRect();
+		let parent = WIDGETFACTORY.getCurrentContext().searchBox.parentNode;
+		
+		if( bbox && parent ){
+			let popup = WIDGETFACTORY.getCurrentContext().popup;
+			
+			if( !popup ){
+				popup = WIDGETFACTORY.buildWidget({which:"ul",class: "popup"});
+				WIDGETFACTORY.addWidgetToContainer({parent: parent,child: popup});
+				WIDGETFACTORY.getCurrentContext().popup = popup;
+			}
+			WIDGETFACTORY.clearChildren({widget: popup});
+			
+			if( args.show ){
+				WIDGETFACTORY.setStyle({widget: popup,style: {top: bbox.top + bbox.height + "px",width: bbox.width + "px",height: "60px",display: "inline-block",visibility: "visible"}});
+				
+				if( args.items ){
+					for(let p in args.items){
+						let option = WIDGETFACTORY.buildWidget({which:"li",class: "popupitem",value: args.items[p].id,innerHTML: args.items[p].name});
+						WIDGETFACTORY.addWidgetToContainer({parent: popup,child: option});
+						WIDGETFACTORY.addHandler({widget: option,handler: [{name: "click",callback: args.onclick.bind({selection: args.items[p].id})}]});
+					}
+				}
+			}
+			else {
+				WIDGETFACTORY.setStyle({widget: popup,style:{display: "none",visibility: "eb"}});
+			}
+		}
+	},
+	makeXHRRequest: function(type, url, data, callback, callbackOnFailure,headers,doRaw) {
+		var httpRequest = new XMLHttpRequest();
+
+		if (!httpRequest) {
+			alert('Cannot create an XMLHTTP instance');
+			return false;
+		}
+		
+		
+		httpRequest.onreadystatechange = function (evt) {
+			if (httpRequest.readyState != 4 || httpRequest.status != 200) {
+
+				return;
+			} else if (httpRequest.readyState === 4 && httpRequest.status > 399) {
+				console.error("Error: " + httpRequest.status + " ");
+				if (callbackOnFailure) {
+					//eval(callback + '(httpRequest.responseText)');
+					callbackOnFailure(httpRequest.responseText);
+				}
+
+			} else {
+				//console.log(httpRequest.responseText);
+				var data = httpRequest.responseText;
+				console.log("On Ready State Change Rec'd ");
+				console.log(JSON.stringify(evt));
+				//  eval(callback + '(data)');
+				if( doRaw ){
+					callback(data);
+				}
+				else {
+					callback(JSON.parse(data));
+				}
+			}
+		};
+		
+		
+		
+		httpRequest.open(type, url);
+		
+		if( headers ){
+				for(var i = 0;i < headers.length;i++){
+					httpRequest.setRequestHeader(headers[i].name,headers[i].value);		
+				}
+		}
+		
+		if (type === "POST" || type === "PUT") {
+			httpRequest.send(data);
+		} else {
+			httpRequest.send();
+		}
+	},
+	getScreenDimensions: function(padX, padY) {
+		let windowDimension;
+		
+		let winW = 630, winH = 460;
+		if (document.body && document.body.offsetWidth) {
+		 windowDimension.w = document.body.offsetWidth;
+		 windowDimension.h = document.body.offsetHeight;
+		}
+		if (document.compatMode=='CSS1Compat' &&
+			document.documentElement &&
+			document.documentElement.offsetWidth ) {
+		 windowDimension.w = document.documentElement.offsetWidth;
+		 windowDimension.h = document.documentElement.offsetHeight;
+		}
+		if (window.innerWidth && window.innerHeight) {
+		 windowDimension.w = window.innerWidth;
+		 windowDimension.h = window.innerHeight;
+		}
+
+		return( {screenWidth: windowDimension.w - padX,
+				screenHeight: windowDimension.h - padY,
+				windowWidth: windowDimension.w,
+				windowHeight: windowDimension.h} );
+	}
+};
+
+require([
+			"dojo/dom",
+			"dojo/dom-geometry",
+			"dojo/on",
+			"dojo/topic",
+			"dojo/date/locale",
+			"dojo/date/stamp",
+			"dojo/dom-style",
+			"dojo/dom-construct",
+			"dojo/_base/window",
+			"dojo/parser",
+			"dojo/dom-construct",
+			"dojo/ready",
+			"dojo/has", 
+			"dojo/_base/sniff",
+			"dojo/domReady!",
+			"js/global.js",
+			"js/launch.js"
+         ], 
+         function(dom,domGeom,don,topic,locale,stamp,domStyle,domConstruct){
+                getCurrentContext().dom = dom;
+                getCurrentContext().on = don;
+                getCurrentContext().domGeom = domGeom;
+                getCurrentContext().topic = topic;
+                getCurrentContext().locale = locale;
+                getCurrentContext().stamp = stamp;
+                getCurrentContext().domStyle = domStyle;
+                getCurrentContext().domConstruct = domConstruct;
+                
+                launchApplication({id: "mainapp"});
+         }
+);
+</script> 
+</head>
+
+<body class="claro">
+<div id="mainapp"></div>
+</body>
+</html>

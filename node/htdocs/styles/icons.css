@@ -1,0 +1,176 @@
+@charset "utf-8";
+/* CSS Document */
+
+#reporting {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -8px 0 no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#time {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -65px 0 no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#showall {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -123px 0 no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#send-message {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -180px 0 no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#list-users {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -237px 0 no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+
+
+
+
+
+#cut {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -8px -50px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#show-map {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -65px -50px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#chat-message {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -123px -50px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#go-home {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -180px -50px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#show-help {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -237px -50px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+
+
+
+
+
+#do-save {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -8px -100px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#take-picture {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -65px -100px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#send-text {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -123px -100px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#show-graph {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -180px -100px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#show-help {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -237px -100px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+
+
+
+#show-calendar {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -8px -150px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#toggle-zen {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -65px -150px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#do-delete {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -123px -150px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#do-print {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -180px -150px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
+#do-logout {
+    width: 48px;
+    height: 44px;
+    background: url(app_icons.png) -237px -150px no-repeat;
+	display: inline-block;
+	border-radius: 10px;
+}
+
