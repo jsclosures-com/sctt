@@ -98,7 +98,7 @@ var CONTENTTYPE = "TEST";
                                                                         tabPosition: "top",
                                                                         tabStrip: "true",
                                                                         title: uiManager.getString("scriptManager"),
-                                                                        style: "width: " + (getCurrentContext().screenWidth-170) + "px;height:" + (getCurrentContext().screenHeight-424) + "px;"
+                                                                        style: "width: " + (getCurrentContext().screenWidth-170) + "px;height:" + (getCurrentContext().screenHeight-454) + "px;"
                                                                    });
             let fieldList = field.list;
 

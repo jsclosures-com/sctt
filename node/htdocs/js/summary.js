@@ -95,7 +95,12 @@ var context = {};
     {
         name : uiManager.getString("query_txt"),
         field : 'query_txt',
-        width : '60%'
+        width : '55%'
+    },
+    {
+        name : uiManager.getString("mscore"),
+        field : 'matchscore',
+        width : '5%'
     },
     {
         name : uiManager.getString("qtime"),
