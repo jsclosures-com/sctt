@@ -1,4 +1,3 @@
-//Lets require/import the HTTP module
 var http = require('http');
 var https = require('https');
 var url = require("url");
