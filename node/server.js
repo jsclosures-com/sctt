@@ -33,11 +33,17 @@ var PORT=8180;
 var SOLRHOST="localhost";
 var SOLRPORT=8983
 var SOLRCOLLECTION="validate";
+var DEBUG = 0;
 
 var commandLine = {};
 
+function writeLog(level,message){
+	if( level <= DEBUG ){
+		console.log(message);
+	}
+}
 process.argv.forEach((val, index) => {
-  console.log(`${index}: ${val}`);
+  writeLog(1,`${index}: ${val}`);
   if( index > 1 ){
 	let v = val;
 	
@@ -48,7 +54,7 @@ process.argv.forEach((val, index) => {
   }
 });
 
-console.log("commandline",commandLine);
+if( DEBUG > 1 ) console.log("commandline",commandLine);
 
 if( commandLine.hasOwnProperty("port") )
 	PORT = parseInt(commandLine.port);
@@ -58,6 +64,8 @@ if( commandLine.hasOwnProperty("solrport") )
 	SOLRPORT = parseInt(commandLine.solrport);	
 if( commandLine.hasOwnProperty("solrcollection") )
 	SOLRCOLLECTION = commandLine.solrcollection;
+if( commandLine.hasOwnProperty("debug") )
+	DEBUG = parseInt(commandLine.DEBUG);
 
 function parseCookies (request) {
     var list = {},
@@ -73,14 +81,14 @@ function parseCookies (request) {
 
 function handleRequest(request, response){
 	if (request.method == 'POST' || request.method == 'DELETE' || request.method == 'PUT' ) {
-		console.log('POST')
+		writeLog(1,'POST')
 		var body = ''
 		request.on('data', function(data) {
 		  body += data
-		  console.log('Partial body: ' + body)
+		  writeLog(1,'Partial body: ' + body)
 		});
 		request.on('end', function() {
-		  console.log('Body: ' + body)
+		  writeLog(1,'Body: ' + body)
 		  let data = body ? JSON.parse(body) : {};
 		  actualHandleRequest(request,response,data);
 		});
@@ -94,7 +102,7 @@ function handleRequest(request, response){
 
 //We need a function which handles requests and send response
 function actualHandleRequest(request, response,bodyData){
-    console.log("handle request");
+    writeLog(1,"handle request");
 	var result = {status: 0};
 
     var requestUrl = request.url;
@@ -109,10 +117,10 @@ function actualHandleRequest(request, response,bodyData){
 		
 		
 	}
-	console.log("query obj",queryObj);
+	writeLog(1,"query obj",queryObj);
 	var contentType = queryObj.contenttype;
 	var pathname = requestObj.pathname;
-	console.log(pathname,requestUrl);
+	if( DEBUG > 1 ) console.log(pathname,requestUrl);
 	
     if( requestUrl.lastIndexOf('/authservice',0) > -1 ){
     	//handle auth request
@@ -133,7 +141,7 @@ function actualHandleRequest(request, response,bodyData){
     		response.end(JSON.stringify(result));
     	}
     	else if( contentType === 'LOGIN') {
-			console.log("login",queryObj);
+			if( DEBUG > 1 ) console.log("login",queryObj);
 			var isDelete = request.method == 'DELETE';
 			var userName = queryObj.user;
     		var userKey = queryObj.password;
@@ -178,16 +186,16 @@ function actualHandleRequest(request, response,bodyData){
 	    	}
 		}
 		
-		console.log("auth response",result);
+		if( DEBUG > 1 ) console.log("auth response",result);
     	result.contenttype = contentType;
     	response.end(JSON.stringify(result));
     }
     else if( pathname === '/restservice' ){
     	//handle auth request
-		console.log("contentType",contentType);
+		writeLog(1,"contentType " + contentType);
 		if( HANDLERS.hasOwnProperty(contentType) ){
 			let handlerCallback = function(resp){
-				console.log("handler called back",this.contentType);
+				if( DEBUG > 1 ) console.log("handler called back",this.contentType);
 				let parsedResponse = {};
 				
 				try {
@@ -195,7 +203,7 @@ function actualHandleRequest(request, response,bodyData){
 					if( resp && resp.payload && resp.headers ){
 						for(let h in resp.headers){
 							response.setHeader(resp.headers[h].name,resp.headers[h].value);
-							console.log("set header");
+							writeLog(1,"set header");
 						}
 						parsedResponse = resp.payload;
 
@@ -204,13 +212,13 @@ function actualHandleRequest(request, response,bodyData){
 						parsedResponse = JSON.stringify(resp);
 				}
 				catch(exception){ 
-					console.log(exception);
+					if( DEBUG > 0 ) console.log(exception);
 				}
 				
 				try{
 					this.response.end(parsedResponse);
 				}
-				catch(ee){ console.log(ee);}
+				catch(ee){ if( DEBUG > 0 ) console.log(ee);}
 			}
 			
 			HANDLERS[contentType]({requestUrl: requestUrl,requestObj: requestObj,queryObj: queryObj,contentType: contentType,pathName: pathname,callback: handlerCallback.bind({response: response,contentType: contentType})});
@@ -266,7 +274,7 @@ var server = http.createServer(handleRequest);
 //Lets start our server
 server.listen(PORT, function(){
     //Callback triggered when server is successfully listening. Hurray!
-    console.log("Server listening on: http://localhost:%s", PORT);
+    if( DEBUG > 0 ) console.log("Server listening on: http://localhost:%s", PORT);
 });
 
 wsServer = new WebSocketServer({
@@ -293,55 +301,76 @@ var logMultiplexer = {
 									logMultiplexer.sockets[c].sendUTF(message);
 								}
 								catch(e){
-									console.log(e);
+									if( DEBUG > 0 ) console.log(e);
 									logMultiplexer.deregister(c);
 								}
 							}
 						}
 };
 
-console.xlog = function() {
-	for( let a in arguments){
+var messageQueue = [];
+
+function clearLogQueue(){
+
+	for(let i = 0;i < 100;i++){
+		let m = messageQueue.shift();
+		if( m ) 
+			logMultiplexer.notify(m);
+		else
+			break;
+	}
+	setTimeout(clearLogQueue,100);
+}
+
+clearLogQueue();
+
+
+console.wslog = function() {
+	if( DEBUG > 1 ) console.log(arguments);
+	messageQueue.push(JSON.stringify(arguments));
+
+	//logMultiplexer.notify(JSON.stringify(arguments));
+	/*for( let a in arguments){
 		//
 		if( typeof(arguments[a]) == 'object' ){
 			let tVal = JSON.stringify(arguments[a]);
-			process.stdout.write(tVal + '\n');
+			if( DEBUG > 1 ) process.stdout.write(tVal + '\n');
 			logMultiplexer.notify(tVal);
 		}
 		else {
-			process.stdout.write(arguments[a] + '\n');
+			if( DEBUG > 1 ) process.stdout.write(arguments[a] + '\n');
 			logMultiplexer.notify(arguments[a]);
 		}
-	}
+	}*/
 };
 
 wsServer.on('request', function(request) {
     if (!originIsAllowed(request.origin)) {
       // Make sure we only accept requests from an allowed origin
       request.reject();
-      console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+      if( DEBUG > 1 ) console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
       return;
     }
-	console.log('brequest',request);
+	if( DEBUG > 1 ) console.log('brequest',request);
 	let key = "harcor";
 	var connection = request.accept('echo-protocol', request.origin);
 	
-	console.log((new Date()) + ' Connection accepted.');
+	if( DEBUG > 1 ) console.log((new Date()) + ' Connection accepted.');
 	
 	logMultiplexer.register(key,connection);
 
     connection.on('message', function(message) {
         if (message.type === 'utf8') {
-            console.log('Received Message: ' + message.utf8Data);
+            if( DEBUG > 1 ) console.log('Received Message: ' + message.utf8Data);
             connection.sendUTF(message.utf8Data);
         }
         else if (message.type === 'binary') {
-            console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
+            if( DEBUG > 1 ) console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
             connection.sendBytes(message.binaryData);
         }
     });
     connection.on('close', function(reasonCode, description) {
-        console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+        if( DEBUG > 1 ) console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
     });
 });
 
@@ -405,7 +434,7 @@ function getRESTData(args){
 
 	let t = http.get({host: args.host,port: args.port,path: args.path}, callback.bind({args: args}));
 		t.on('error', function(e) {
-				console.log("Got error: " + e.message);
+				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
 }
@@ -456,7 +485,7 @@ function loadTest(testName,callback,testType){
 	
 	let t = http.get({host: solrHost,port: solrPort,path: solrPath}, queryCallback);
 		t.on('error', function(e) {
-				console.log("Got error: " + e.message);
+			if( DEBUG > 1 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
 }
@@ -475,7 +504,7 @@ function parseArgs(line){
 			}
 		}
 	}
-	console.log("parsed",result);
+	if( DEBUG > 1 ) console.log("parsed",result);
 	return( result );
 }
 
@@ -493,7 +522,7 @@ function parseRunnerArgs(line){
 			}
 		}
 	}
-	console.log("runnerparsed",result);
+	if( DEBUG > 1 ) console.log("runnerparsed",result);
 	return( result );
 }
 
@@ -525,7 +554,7 @@ var HANDLERS = {
 			
 			let sendArgs = this.args.queryObj.input ? parseArgs(this.args.queryObj.input) : this.args;
 			
-			console.log("sendArgs",sendArgs);
+			if( DEBUG > 1 ) console.log("sendArgs",sendArgs);
 			
 			scriptToExecute(sendArgs);
 			
@@ -556,7 +585,7 @@ var HANDLERS = {
 			
 			let sendArgs = this.args.queryObj.input ? parseArgs(this.args.queryObj.input) : this.args;
 			
-			console.log("sendArgs",sendArgs);
+			if( DEBUG > 1 ) console.log("sendArgs",sendArgs);
 			
 			scriptToExecute(sendArgs);
 			
@@ -597,14 +626,14 @@ var HANDLERS = {
 
 				sendArgs.resultContext = result;
 				
-				console.log("sendArgs",sendArgs);
+				if( DEBUG > 1 ) console.log("sendArgs",sendArgs);
 				
 				scriptToExecute(sendArgs);
 				
 				
 			}
 			catch(ee){
-				console.log("exception running script",ee);
+				if( DEBUG > 0 ) console.log("exception running script",ee);
 			}
 			
 			/*try{
@@ -659,7 +688,7 @@ var HANDLERS = {
 				solrPath += '+desc';
 			}
 		}
-		console.log("solrpath",solrPath);
+		if( DEBUG > 1 ) console.log("solrpath",solrPath);
 
 		var callback = function(res){
 			  var str = "";
@@ -686,11 +715,11 @@ var HANDLERS = {
 		
 		let tUrl = solrPath.replace("%s",input).replace(/ /g,"%20");
 
-		console.log('solr path',tUrl);
+		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		
 		let t = http.get({host: solrHost,port: solrPort,path: tUrl}, tCallback);
 		t.on('error', function(e) {
-				console.log("Got error: " + e.message);
+			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
 		
@@ -744,11 +773,11 @@ var HANDLERS = {
 			}
 			//var tCallback = callback.bind({field: fieldList[i]});
 			var tCallback = callback;
-			console.log('solr path',solrPath);
+			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
 			let t = http.get({host: solrHost,port: solrPort,path: solrPath}, tCallback);
 			t.on('error', function(e) {
-					console.log("Got error: " + e.message);
+				if( DEBUG > 0 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
 			});
 		}
@@ -818,7 +847,7 @@ var HANDLERS = {
 					});
 
 			  res.on('end', function () {
-					console.log("sample complete",str);
+				if( DEBUG > 1 ) console.log("sample complete",str);
 					let data = JSON.parse(str);
 					if( data.response && data.response.docs ){
 						result.items = data.response.docs;
@@ -832,11 +861,11 @@ var HANDLERS = {
 		
 		let tUrl = solrPath.replace("%s",input).replace(/ /g,"%20");
 
-		console.log('solr path',tUrl);
+		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		
 		let t = http.get({host: solrHost,port: solrPort,path: tUrl}, tCallback);
 		t.on('error', function(e) {
-				console.log("Got error: " + e.message);
+			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
 		
@@ -882,7 +911,7 @@ var HANDLERS = {
 						});
 
 				  res.on('end', function () {
-						console.log("sample complete",str);
+					if( DEBUG > 1 ) console.log("sample complete",str);
 						let data = JSON.parse(str);
 						if( data.response && data.response.docs ){
 							result.items = data.response.docs;
@@ -893,11 +922,11 @@ var HANDLERS = {
 			}
 			//var tCallback = callback.bind({field: fieldList[i]});
 			var tCallback = callback;
-			console.log('solr path',solrPath);
+			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
 			let t = http.get({host: solrHost,port: solrPort,path: solrPath}, tCallback);
 			t.on('error', function(e) {
-					console.log("Got error: " + e.message);
+				if( DEBUG > 0 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
 			});
 		}
@@ -912,18 +941,18 @@ var HANDLERS = {
 						});
 
 				  res.on('end', function () {
-						console.log("update complete",str);
+					if( DEBUG > 1 ) console.log("update complete",str);
 						let data = JSON.parse(str);
 						
 						args.callback(data);
 				  });
 			}
 			var tCallback = callback;
-			console.log('solr path',solrPath);
+			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
 			let t = http.request({method: "POST",hostname: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}}, tCallback);
 			t.on('error', function(e) {
-					console.log("Got error: " + e.message);
+				if( DEBUG > 0) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
 			});
 			if( !args.queryObj.doc.id ){
@@ -945,7 +974,7 @@ var HANDLERS = {
 						});
 
 				  res.on('end', function () {
-						console.log("update complete",str);
+					if( DEBUG > 1 ) console.log("update complete",str);
 						let data = JSON.parse(str);
 						
 						args.callback(data);
@@ -956,11 +985,11 @@ var HANDLERS = {
 			
 			let t = http.request({method: "POST",hostname: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}}, tCallback);
 			t.on('error', function(e) {
-					console.log("Got error: " + e.message);
+				if( DEBUG > 0 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
 			});
 			let docs = {"delete": {id: args.queryObj.doc.id },"commit": {}};
-			console.log("Delete",docs);
+			if( DEBUG > 1 ) console.log("Delete",docs);
 			t.write(JSON.stringify(docs));
 			t.end();
 			
@@ -1008,7 +1037,7 @@ var HANDLERS = {
 						});
 
 				  res.on('end', function () {
-						console.log("sample complete",str);
+					    if( DEBUG > 1 ) console.log("sample complete",str);
 						let data = JSON.parse(str);
 						if( data.response && data.response.docs ){
 							result.items = data.response.docs;
@@ -1019,11 +1048,11 @@ var HANDLERS = {
 			}
 			//var tCallback = callback.bind({field: fieldList[i]});
 			var tCallback = callback;
-			console.log('solr path',solrPath);
+			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
 			let t = http.get({host: solrHost,port: solrPort,path: solrPath}, tCallback);
 			t.on('error', function(e) {
-					console.log("Got error: " + e.message);
+				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
 			});
 		}
@@ -1038,18 +1067,18 @@ var HANDLERS = {
 						});
 
 				  res.on('end', function () {
-						console.log("update complete",str);
+					if( DEBUG > 1 ) console.log("update complete",str);
 						let data = JSON.parse(str);
 						
 						args.callback(data);
 				  });
 			}
 			var tCallback = callback;
-			console.log('solr path',solrPath);
+			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
 			let t = http.request({method: "POST",hostname: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}}, tCallback);
 			t.on('error', function(e) {
-					console.log("Got error: " + e.message);
+				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
 			});
 			if( !args.queryObj.doc.id ){
@@ -1078,15 +1107,15 @@ var HANDLERS = {
 				  });
 			}
 			var tCallback = callback;
-			console.log('solr path',solrPath);
+			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
 			let t = http.request({method: "POST",hostname: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}}, tCallback);
 			t.on('error', function(e) {
-					console.log("Got error: " + e.message);
+				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
 			});
 			let docs = {"delete": {id: args.queryObj.doc.id },"commit": {}};
-			console.log("Delete",docs);
+			if( DEBUG > 1 ) console.log("Delete",docs);
 			t.write(JSON.stringify(docs));
 			t.end();
 			
@@ -1137,7 +1166,7 @@ var HANDLERS = {
 
 		solrPath += '&sort=crawldate+asc,contenttype+desc';
 
-		console.log("solrpath",solrPath);
+		if( DEBUG > 1 ) console.log("solrpath",solrPath);
 
 		var callback = function(res){
 			  var str = "";
@@ -1163,11 +1192,11 @@ var HANDLERS = {
 		
 		let tUrl = solrPath.replace(/ /g,"%20");
 
-		console.log('solr path',tUrl);
+		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		
 		let t = http.get({host: solrHost,port: solrPort,path: tUrl}, tCallback);
 		t.on('error', function(e) {
-				console.log("Got error: " + e.message);
+			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
 		
@@ -1196,7 +1225,7 @@ var HANDLERS = {
 
 		solrPath += '&sort=crawldate+asc,contenttype+desc';
 
-		console.log("solrpath",solrPath);
+		if( DEBUG > 1 ) console.log("solrpath",solrPath);
 
 		var callback = function(res){
 			  var str = "";
@@ -1207,7 +1236,7 @@ var HANDLERS = {
 					});
 
 			  res.on('end', function () {
-					console.log("export complete",str);
+				if( DEBUG > 1 ) console.log("export complete",str);
 					let data = str;
 					
 					args.callback({payload: data,headers: [{name: "Content-Type",value: "application/force-download"},{name: "Content-Length",value: str.length},{name: "Content-Type",value: "application/csv"},{name: "Content-Disposition",value: "attachment; filename=" + testName + ".csv"}]});
@@ -1217,11 +1246,11 @@ var HANDLERS = {
 		
 		let tUrl = solrPath.replace(/ /g,"%20");
 
-		console.log('solr path',tUrl);
+		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		
 		let t = http.get({host: solrHost,port: solrPort,path: tUrl}, tCallback);
 		t.on('error', function(e) {
-				console.log("Got error: " + e.message);
+			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
 		
@@ -1240,7 +1269,7 @@ var HANDLERS = {
 			testName = args.queryObj.testname;
 	
 
-		console.log("solrpath",solrPath);
+			if( DEBUG > 1 ) console.log("solrpath",solrPath);
 
 		var callback = function(res){
 			  var str = "";
@@ -1251,7 +1280,7 @@ var HANDLERS = {
 					});
 
 			  res.on('end', function () {
-					console.log("delete complete",str);
+				if( DEBUG > 1 ) console.log("delete complete",str);
 					let data = JSON.parse(str);
 					if( data.response && data.response.docs ){
 						let docs = data.response.docs;
@@ -1266,12 +1295,12 @@ var HANDLERS = {
 		
 		let tUrl = solrPath.replace(/ /g,"%20");
 
-		console.log('solr path',tUrl);
+		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		let payload = "<add><delete><query>-contenttype:TEST AND testname:" + testName + "</query></delete></add>";
 
 		let t = http.request({headers: {"Content-Type": "text/xml","Content-Length": payload.length},host: solrHost,port: solrPort,method: 'POST',path: tUrl}, tCallback);
 		t.on('error', function(e) {
-				console.log("Got error: " + e.message);
+			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
 		t.write(payload);
@@ -1298,7 +1327,7 @@ var HANDLERS = {
 		var collectorCB = function(data){
 			if( data.items ){
 				this.result.items = this.result.items.concat(data.items);
-				console.log("concat items",this.result,this);
+				if( DEBUG > 1 ) console.log("concat items",this.result,this);
 			}
 
 			if( this.nextEntry )
@@ -1317,7 +1346,7 @@ var HANDLERS = {
 				pathList[i].callback = collectorCB.bind({args: args,result: finalResult });
 		}
 
-		console.log("solrpath",pathList[0].path);
+		if( DEBUG > 1 ) console.log("solrpath",pathList[0].path);
 		getRESTData({host: solrHost,port: solrPort,path: pathList[0].path,type: pathList[0].type,callback: pathList[0].callback,entry: pathList[0]});
 
 		return( result );
@@ -1352,7 +1381,7 @@ var HANDLERS = {
 				result.message = "executed " + this.type + " in " + test.testname;
 			}
 			catch(ee){
-				console.log("exception running script",ee);
+				if( DEBUG > 0 ) console.log("exception running script",ee);
 			}
 		};
 		loadTest(testName,getTestCallback.bind({args: args,type: testType,name: testName}));
@@ -1383,7 +1412,7 @@ var HANDLERS = {
 				  });
 
 			res.on('end', function () {
-				  console.log("delete complete",str);
+				if( DEBUG > 1 ) console.log("delete complete",str);
 				  let data = JSON.parse(str);
 				 
 				  args.callback(data);
@@ -1392,7 +1421,7 @@ var HANDLERS = {
 		
 		let t = http.get({host: solrHost,port: solrPort,path: solrPath}, callback);
 		t.on('error', function(e) {
-				console.log("Got error: " + e.message);
+			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
 
