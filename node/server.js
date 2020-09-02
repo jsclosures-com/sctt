@@ -31,7 +31,7 @@ var mimeType = {
 //Lets define a port we want to listen to
 var PORT=8180; 
 var SOLRHOST="localhost";
-var SOLRPORT=8983
+var SOLRPORT=8983;
 var SOLRCOLLECTION="validate";
 var DEBUG = 0;
 

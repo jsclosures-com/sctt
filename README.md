@@ -3,12 +3,27 @@ search configuration tracking tool
 
 create config set
 
-D:\apps\solr-8.2.0>server\scripts\cloud-scripts\zkcli.bat -cmd upconfig -z localhost:9983 -confdir D:\aworkspace\parker\togo\validate\conf -confname validate
+D:\apps\solr-8.2.0>server\scripts\cloud-scripts\zkcli.bat -cmd upconfig -z localhost:9983 -confdir D:\aworkspace\sctt\validate\conf -confname validate
 
 create collection 
 
 
 http://localhost:8983/solr/admin/collections?action=CREATE&name=validate&collection.configName=validate&numShards=1&replicationFactor=1
+
+Start the node server
+
+node ./server.js  OPTIONS
+
+OPTIONS
+
+port=8180
+solrhost=localhost
+solrport=8983
+solrcollection="validate
+debug=0
+
+
+http://sctthost:8180
 
 HarCor Technologies, Inc
 
