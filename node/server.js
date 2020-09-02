@@ -33,6 +33,7 @@ var SOLRHOST="localhost";
 var SOLRPORT=8983;
 var SOLRCOLLECTION="validate";
 var DEBUG = 0;
+var AUTHKEY = false;
 
 var commandLine = {};
 
@@ -65,7 +66,8 @@ if( commandLine.hasOwnProperty("solrcollection") )
 	SOLRCOLLECTION = commandLine.solrcollection;
 if( commandLine.hasOwnProperty("debug") )
 	DEBUG = parseInt(commandLine.DEBUG);
-
+if( commandLine.hasOwnProperty("authkey") )
+	AUTHKEY = commandLine.authkey;
 function parseCookies (request) {
     var list = {},
         rc = request.headers.cookie;
@@ -431,7 +433,11 @@ function getRESTData(args){
 		});
     }
 
-	let t = http.get({host: args.host,port: args.port,path: args.path}, callback.bind({args: args}));
+	let config = {host: args.host,port: args.port,path: args.path};
+	if( AUTHKEY )
+		config.headers = {"Authorization": "Basic " + AUTHKEY};
+
+	let t = http.get(config, callback.bind({args: args}));
 		t.on('error', function(e) {
 				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
@@ -482,7 +488,10 @@ function loadTest(testName,callback,testType){
 	}
 	
 	
-	let t = http.get({host: solrHost,port: solrPort,path: solrPath}, queryCallback);
+	let config = {host: solrHost,port: solrPort,path: solrPath};
+	if( AUTHKEY )
+		config.headers = {"Authorization": "Basic " + AUTHKEY};
+	let t = http.get(config, queryCallback);
 		t.on('error', function(e) {
 			if( DEBUG > 1 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
@@ -716,7 +725,11 @@ var HANDLERS = {
 
 		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		
-		let t = http.get({host: solrHost,port: solrPort,path: tUrl}, tCallback);
+		let config = {host: solrHost,port: solrPort,path: tUrl};
+		if( AUTHKEY )
+			config.headers = {"Authorization": "Basic " + AUTHKEY};
+
+		let t = http.get(config,tCallback);
 		t.on('error', function(e) {
 			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
@@ -774,7 +787,11 @@ var HANDLERS = {
 			var tCallback = callback;
 			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
-			let t = http.get({host: solrHost,port: solrPort,path: solrPath}, tCallback);
+			let config = {host: solrHost,port: solrPort,path: solrPath};
+			if( AUTHKEY )
+				config.headers = {"Authorization": "Basic " + AUTHKEY};
+
+			let t = http.get(config,tCallback);
 			t.on('error', function(e) {
 				if( DEBUG > 0 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
@@ -862,7 +879,11 @@ var HANDLERS = {
 
 		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		
-		let t = http.get({host: solrHost,port: solrPort,path: tUrl}, tCallback);
+		let config = {host: solrHost,port: solrPort,path: tUrl};
+		if( AUTHKEY )
+			config.headers = {"Authorization": "Basic " + AUTHKEY};
+
+		let t = http.get(config, tCallback);
 		t.on('error', function(e) {
 			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
@@ -923,7 +944,11 @@ var HANDLERS = {
 			var tCallback = callback;
 			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
-			let t = http.get({host: solrHost,port: solrPort,path: solrPath}, tCallback);
+			let config = {host: solrHost,port: solrPort,path: solrPath};
+			if( AUTHKEY )
+				config.headers = {"Authorization": "Basic " + AUTHKEY};
+
+			let t = http.get(config, tCallback);
 			t.on('error', function(e) {
 				if( DEBUG > 0 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
@@ -949,7 +974,10 @@ var HANDLERS = {
 			var tCallback = callback;
 			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
-			let t = http.request({method: "POST",hostname: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}}, tCallback);
+			let config = {host: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}};
+			if( AUTHKEY )
+				config.headers["Authorization"] = "Basic " + AUTHKEY;
+			let t = http.request(config, tCallback);
 			t.on('error', function(e) {
 				if( DEBUG > 0) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
@@ -982,7 +1010,10 @@ var HANDLERS = {
 			var tCallback = callback;
 			console.log('solr path',solrPath);
 			
-			let t = http.request({method: "POST",hostname: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}}, tCallback);
+			let config = {host: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}};
+			if( AUTHKEY )
+				config.headers["Authorization"] = "Basic " + AUTHKEY;
+			let t = http.request(config, tCallback);
 			t.on('error', function(e) {
 				if( DEBUG > 0 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
@@ -1049,11 +1080,15 @@ var HANDLERS = {
 			var tCallback = callback;
 			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
-			let t = http.get({host: solrHost,port: solrPort,path: solrPath}, tCallback);
+			let config = {host: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}};
+			if( AUTHKEY )
+				config.headers["Authorization"] = "Basic " + AUTHKEY;
+			let t = http.request(config, tCallback);
 			t.on('error', function(e) {
 				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
 			});
+			t.end();
 		}
 		else if( action === 'POST' ){
 			var solrPath = "/solr/" + solrCollection + "/update";
@@ -1075,7 +1110,10 @@ var HANDLERS = {
 			var tCallback = callback;
 			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
-			let t = http.request({method: "POST",hostname: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}}, tCallback);
+			let config = {method: "POST",host: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}};
+			if( AUTHKEY )
+				config.headers["Authorization"] = "Basic " + AUTHKEY;
+			let t = http.request(config, tCallback);
 			t.on('error', function(e) {
 				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
@@ -1108,7 +1146,10 @@ var HANDLERS = {
 			var tCallback = callback;
 			if( DEBUG > 1 ) console.log('solr path',solrPath);
 			
-			let t = http.request({method: "POST",hostname: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}}, tCallback);
+			let config = {method: "POST",host: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}};
+			if( AUTHKEY )
+				config.headers["Authorization"] = "Basic " + AUTHKEY;
+			let t = http.request(config, tCallback);
 			t.on('error', function(e) {
 				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 					args.callback({error: e.message});
@@ -1193,7 +1234,10 @@ var HANDLERS = {
 
 		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		
-		let t = http.get({host: solrHost,port: solrPort,path: tUrl}, tCallback);
+		let config = {host: solrHost,port: solrPort,path: tUrl,headers : {'Content-Type': 'application/json'}};
+			if( AUTHKEY )
+				config.headers["Authorization"] = "Basic " + AUTHKEY;
+			let t = http.request(config,tCallback);
 		t.on('error', function(e) {
 			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
@@ -1247,7 +1291,10 @@ var HANDLERS = {
 
 		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		
-		let t = http.get({host: solrHost,port: solrPort,path: tUrl}, tCallback);
+		let config = {host: solrHost,port: solrPort,path: tUrl,headers : {'Content-Type': 'application/json'}};
+			if( AUTHKEY )
+				config.headers["Authorization"] = "Basic " + AUTHKEY;
+			let t = http.request(config, tCallback);
 		t.on('error', function(e) {
 			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
@@ -1297,7 +1344,10 @@ var HANDLERS = {
 		if( DEBUG > 1 ) console.log('solr path',tUrl);
 		let payload = "<add><delete><query>-contenttype:TEST AND testname:" + testName + "</query></delete></add>";
 
-		let t = http.request({headers: {"Content-Type": "text/xml","Content-Length": payload.length},host: solrHost,port: solrPort,method: 'POST',path: tUrl}, tCallback);
+		let config = {headers: {"Content-Type": "text/xml","Content-Length": payload.length},host: solrHost,port: solrPort,method: 'POST',path: tUrl};
+		if( AUTHKEY )
+			config.headers["Authorization"] = "Basic " + AUTHKEY;
+		let t = http.request(config,  tCallback);
 		t.on('error', function(e) {
 			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
@@ -1418,7 +1468,10 @@ var HANDLERS = {
 			});
 	  }
 		
-		let t = http.get({host: solrHost,port: solrPort,path: solrPath}, callback);
+	  let config = {method: "GET",host: solrHost,port: solrPort,path: tUrl,headers : {'Content-Type': 'application/json'}};
+	  if( AUTHKEY )
+		  config.headers["Authorization"] = "Basic " + AUTHKEY;
+	  let t = http.request(config, callback);
 		t.on('error', function(e) {
 			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
