@@ -1307,7 +1307,7 @@ var HANDLERS = {
 		
 		var solrHost = SOLRHOST;
 		var solrPort = SOLRPORT;
-		var solrPath = "/solr/val" + SOLRCOLLECTION + "idate/update?commitWithin=1000&overwrite=true&wt=json";
+		var solrPath = "/solr/" + SOLRCOLLECTION + "/update?commitWithin=1000&overwrite=true&wt=json";
 		
 		let testName = "default"; 
 
@@ -1353,6 +1353,7 @@ var HANDLERS = {
 				args.callback({error: e.message});
 		});
 		t.write(payload);
+		t.end();
 
 		return( result );
 	},

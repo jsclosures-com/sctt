@@ -15,7 +15,7 @@ process.argv.forEach((val, index) => {
   }
 });
 
-
+//node ./collectionmectrics.js validateSolrHost=localhost sourceSolrHost=localhost metricsInterval=1000
 console.log("commandline",commandLine);
 
 //process.exit(0);
@@ -31,6 +31,7 @@ var sourceSolrPath = commandLine.hasOwnProperty('sourceSolrPath') ? commandLine[
 var validateSolrHost = commandLine.hasOwnProperty('validateSolrHost') ? commandLine['validateSolrHost'] : "localhost";
 var validateSolrPort = commandLine.hasOwnProperty('validateSolrPort') ? commandLine['validateSolrPort'] : 8983;
 var validateSolrUpdatePath = commandLine.hasOwnProperty('validateSolrUpdatePath') ? commandLine['validateSolrUpdatePath'] : "/solr/validate/update";
+var authKey = commandLine.hasOwnProperty('authKey') ? commandLine['authKey'] : false;
 
 
 function emitMetrics(){
@@ -70,7 +71,12 @@ function saveMetrics(currentIndex,metricsData){
 
 	let docs = [ {id: testName[currentIndex] + "MT" + recordCounter++,testname: testName[currentIndex],metricsdata:Buffer.from(metricsData,"UTF-8").toString("base64") } ];
 	if( debug > 4 ) console.log(docs);
-	let t = http.request({hostname: validateSolrHost,port: validateSolrPort,path: validateSolrUpdatePath,method: 'POST',headers: {'Content-Type': 'application/json'}}, tCallback);
+	let conf = {hostname: validateSolrHost,port: validateSolrPort,path: validateSolrUpdatePath,method: 'POST',headers: {'Content-Type': 'application/json'}};
+
+	if( authKey ){
+		conf.headers['Authorization'] = 'Basic ' + authKey;
+	}
+	let t = http.request(conf, tCallback);
 	t.on('error', function(e) {console.log("Got error: " + e.message);});
 	t.write(JSON.stringify(docs));
 	t.end();
@@ -93,7 +99,13 @@ function  metricsCallback(res) {
 
 function getMetrics(currentIndex){
 	var tCallback = metricsCallback.bind({currentIndex: currentIndex});
-	var t = http.get({host: sourceSolrHost,port: sourceSolrPort,path: sourceSolrPath},tCallback);
+	let conf = {host: sourceSolrHost,port: sourceSolrPort,path: sourceSolrPath};
+
+	if( authKey ){
+		conf.headers = {};
+		conf.headers['Authorization'] = 'Basic ' + authKey;
+	}
+	var t = http.get(conf,tCallback);
 }
 
 emitMetrics();
