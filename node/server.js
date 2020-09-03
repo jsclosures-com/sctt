@@ -65,7 +65,7 @@ if( commandLine.hasOwnProperty("solrport") )
 if( commandLine.hasOwnProperty("solrcollection") )
 	SOLRCOLLECTION = commandLine.solrcollection;
 if( commandLine.hasOwnProperty("debug") )
-	DEBUG = parseInt(commandLine.DEBUG);
+	DEBUG = parseInt(commandLine.debug);
 if( commandLine.hasOwnProperty("authkey") )
 	AUTHKEY = commandLine.authkey;
 function parseCookies (request) {
@@ -1068,7 +1068,15 @@ var HANDLERS = {
 
 				  res.on('end', function () {
 					    if( DEBUG > 1 ) console.log("sample complete",str);
-						let data = JSON.parse(str);
+						let data = {};
+						
+						try {
+							if( DEBUG > 0 ) console.log(str);
+							data = JSON.parse(str);
+						}
+						catch(e){
+							if( DEBUG > 0 ) console.log("TEST",e,str);
+						}
 						if( data.response && data.response.docs ){
 							result.items = data.response.docs;
 							result._totalItems = data.response.numFound;
@@ -1469,7 +1477,7 @@ var HANDLERS = {
 			});
 	  }
 		
-	  let config = {method: "GET",host: solrHost,port: solrPort,path: tUrl,headers : {'Content-Type': 'application/json'}};
+	  let config = {method: "GET",host: solrHost,port: solrPort,path: solrPath,headers : {}};
 	  if( AUTHKEY )
 		  config.headers["Authorization"] = "Basic " + AUTHKEY;
 	  let t = http.request(config, callback);
@@ -1477,7 +1485,70 @@ var HANDLERS = {
 			if( DEBUG > 0 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
+		t.end();
+		return( result );
+	},
+	"PAGEMETRIC": function(args){
+		let result = {status: 1,message: "HANDLED"};
+		
+		var solrHost = SOLRHOST;
+		var solrPort = SOLRPORT;
+		var solrPath = "/solr/" + SOLRCOLLECTION + "/select?q=*:*&wt=json&indent=on";
+		
+		let testName = "default"; 
 
+		if( args.queryObj.testname )
+			testName = args.queryObj.testname;
+		
+		if( testName ){
+			solrPath += "&fq=contenttype:METRIC&fq=testname:" + testName;
+		}
+
+		if( args.queryObj._rows )
+			solrPath += '&rows=' + (args.queryObj._rows);
+		else 
+			solrPath += '&rows=1';
+
+		if( args.queryObj._start )
+			solrPath += '&start=' + (args.queryObj._start);
+		else 
+			solrPath += '&start=0';
+
+		solrPath += '&sort=crawldate+asc';
+
+		if( DEBUG > 1 ) console.log("solrpath",solrPath);
+
+		var callback = function(res){
+			  var str = "";
+	  
+			  res.on('data', function (chunk) {
+						  str += chunk;
+						  
+					});
+
+			  res.on('end', function () {
+				if( DEBUG > 1 ) console.log("export complete",str);
+					let data = str;
+					
+					args.callback({payload: data,headers: [{name: "Content-Type",value: "application/json"},{name: "Content-Length",value: str.length}]});
+			  });
+		}
+		var tCallback = callback;
+		
+		let tUrl = solrPath.replace(/ /g,"%20");
+
+		if( DEBUG > 1 ) console.log('solr path',tUrl);
+		
+		let config = {host: solrHost,port: solrPort,path: tUrl,headers : {'Content-Type': 'application/json'}};
+			if( AUTHKEY )
+				config.headers["Authorization"] = "Basic " + AUTHKEY;
+			let t = http.request(config, tCallback);
+		t.on('error', function(e) {
+			if( DEBUG > 0 ) console.log("Got error: " + e.message);
+				args.callback({error: e.message});
+		});
+		t.end();
+		
 		return( result );
 	}
 };

@@ -40,7 +40,7 @@ var uiManager = getCurrentContext().UIProfileManager;
 
 var restURL = uiManager.getSetting("mojoStoreUrl");
 
-var CONTENTTYPE = "REALTIME";
+var CONTENTTYPE = "PAGEMETRIC";
 
 var context = {};
     context.mainId = mainId;
@@ -54,7 +54,9 @@ var context = {};
     context.messageName = mainId + "message";
     context.showGrid = false;
     context.integrateGrid = false;
-    context.saveLabel = uiManager.getString("analyzeRealTime");
+    context.saveLabel = uiManager.getString("pageMetricStart");
+    context.deleteLabel = uiManager.getString("pageMetricPrevious");
+    context.customLabel = uiManager.getString("pageMetricNext");
     context.formCustomClass = "crudForm";
     context.autoQuery = false;
     context.params = {};
@@ -145,31 +147,37 @@ var context = {};
 
             outputBuffer += "<table border=1><tr><td>collection</td><td>handler</td><td>metric</td><td>value</td></tr>";
 
-            if( !handler ) handler = '^[a-zA-Z0-9._\/]+$';
-            let handlerRegEx = new RegExp(handler);
-            if( !collection ) collection = '^[a-zA-Z0-9._\/]+$';
-            let collectionRegEx = new RegExp(collection);
-            if( !metric ) metric = '^[a-zA-Z0-9._\/]+$';
-            let metricRegEx = new RegExp(metric);
-            
-            let data = inputObj["metrics"];
-            for(let c in data){
-                console.log(c);
-                if( collectionRegEx.test(c) ){
-                    console.log("do collection",c);
-                    let currentHandler = data[c];
-                    for(let h in currentHandler){
-                        console.log(h);
-                        if( handlerRegEx.test(h) ){
-                            console.log("do handler",h);
-                            let currentMetric = currentHandler[h];
+            if( inputObj.response && inputObj.response.docs && inputObj.response.docs.length > 0 ){
+                if( !handler ) handler = '^[a-zA-Z0-9._\/]+$';
+                let handlerRegEx = new RegExp(handler);
+                if( !collection ) collection = '^[a-zA-Z0-9._\/]+$';
+                let collectionRegEx = new RegExp(collection);
+                if( !metric ) metric = '^[a-zA-Z0-9._\/]+$';
+                let metricRegEx = new RegExp(metric);
+                
+                let data = atob(inputObj.response.docs[0]["metricsdata"]);
+                console.log(data);
+                data = JSON.parse(data).metrics;
+                maxOffset = inputObj.response.numFound;
+                
+                for(let c in data){
+                    console.log(c);
+                    if( collectionRegEx.test(c) ){
+                        console.log("do collection",c);
+                        let currentHandler = data[c];
+                        for(let h in currentHandler){
+                            console.log(h);
+                            if( handlerRegEx.test(h) ){
+                                console.log("do handler",h);
+                                let currentMetric = currentHandler[h];
 
-                            if( currentMetric["count"] > 0 ){
-                                for(let m in currentMetric){
-                                    console.log(m);
-                                    if( metricRegEx.test(m) ){
-                                        console.log("do metric",m);
-                                        outputBuffer += "<tr><td>" + c + "</td><td>" + h + "</td><td>" + m + "</td><td>" + currentMetric[m] + "</td></tr>";
+                                if( currentMetric["count"] > 0 ){
+                                    for(let m in currentMetric){
+                                        console.log(m);
+                                        if( metricRegEx.test(m) ){
+                                            console.log("do metric",m);
+                                            outputBuffer += "<tr><td>" + c + "</td><td>" + h + "</td><td>" + m + "</td><td>" + currentMetric[m] + "</td></tr>";
+                                        }
                                     }
                                 }
                             }
@@ -188,7 +196,8 @@ var context = {};
 
         return outputBuffer;
     }
-   
+    let currentOffset = 0;
+    let maxOffset = 1000;
     context.saveAction = function(e,oldRec,newRec)
     {
         //console.log('save: ' + newRec.channelid_s);
@@ -201,7 +210,11 @@ var context = {};
             if( newRec.collection ) payload.collection = newRec.collection;
             if( newRec.handler ) payload.handler = newRec.handler;
             if( newRec.metric ) payload.metric = newRec.metric;
-            
+            payload.testname = newRec.testname;
+            payload._start = 0;
+            payload._rows = 1;
+            currentOffset = 0;
+            maxOffset = 1000;
             
             payload.contenttype = CONTENTTYPE;
             payload.action = "GET";
@@ -209,14 +222,62 @@ var context = {};
             dataService["post"](payload, payload);
         }
         else {
-            showAlertMessageDialog(uiManager.getString("realtimeUnableToRun"));
+            showAlertMessageDialog(uiManager.getString("pageMetricFailedToLoad"));
+        }
+    };
+
+    context.deleteAction = function(e,oldRec,newRec)
+    {
+        //console.log('save: ' + newRec.channelid_s);
+        
+        if( newRec.testname && currentOffset > 0 ){
+            setBusy(true,uiManager.getString("pleaseWait"));
+            
+            var dataService = getDataService(restURL, changeDataCallback, "", "");
+			var payload = {testName: newRec.testname}; 
+            if( newRec.collection ) payload.collection = newRec.collection;
+            if( newRec.handler ) payload.handler = newRec.handler;
+            if( newRec.metric ) payload.metric = newRec.metric;
+            payload.testname = newRec.testname;
+            
+            payload._start = currentOffset-1;
+            payload._rows = 1;
+            currentOffset--;
+            
+            payload.contenttype = CONTENTTYPE;
+            payload.action = "GET";
+            console.log(payload);
+            dataService["post"](payload, payload);
+        }
+        else {
+            showAlertMessageDialog(uiManager.getString("pageMetricNothingPrevious"));
         }
     };
 
     context.customAction = function(e,oldRec,newRec)
     {
-        let tObj = dijit.byId(mainId + "output");
-        tObj.attr("value",'');
+        if( newRec.testname && currentOffset < maxOffset ){
+            setBusy(true,uiManager.getString("pleaseWait"));
+            
+            var dataService = getDataService(restURL, changeDataCallback, "", "");
+			var payload = {testName: newRec.testname}; 
+            if( newRec.collection ) payload.collection = newRec.collection;
+            if( newRec.handler ) payload.handler = newRec.handler;
+            if( newRec.metric ) payload.metric = newRec.metric;
+            payload.testname = newRec.testname;
+            
+            payload._start = currentOffset+1;
+            payload._rows = 1;
+            currentOffset++;
+            
+            payload.contenttype = CONTENTTYPE;
+            payload.action = "GET";
+            console.log(payload);
+            dataService["post"](payload, payload);
+        }
+        else {
+            showAlertMessageDialog(uiManager.getString("pageMetricNothingNext"));
+        }
     };
     
     var formHeight = dojo.isIE ? 450 : 480;

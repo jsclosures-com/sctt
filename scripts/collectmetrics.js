@@ -31,6 +31,8 @@ var sourceSolrPath = commandLine.hasOwnProperty('sourceSolrPath') ? commandLine[
 var validateSolrHost = commandLine.hasOwnProperty('validateSolrHost') ? commandLine['validateSolrHost'] : "localhost";
 var validateSolrPort = commandLine.hasOwnProperty('validateSolrPort') ? commandLine['validateSolrPort'] : 8983;
 var validateSolrUpdatePath = commandLine.hasOwnProperty('validateSolrUpdatePath') ? commandLine['validateSolrUpdatePath'] : "/solr/validate/update";
+var validateContentType = commandLine.hasOwnProperty('validateContentType') ? commandLine['validateContentType'] : "METRIC"; 
+
 var authKey = commandLine.hasOwnProperty('authKey') ? commandLine['authKey'] : false;
 
 
@@ -69,7 +71,7 @@ var recordCounter = 0;
 function saveMetrics(currentIndex,metricsData){
 	let tCallback = saveMetricsCallback.bind({currentIndex: currentIndex});
 
-	let docs = [ {id: testName[currentIndex] + "MT" + recordCounter++,testname: testName[currentIndex],metricsdata:Buffer.from(metricsData,"UTF-8").toString("base64") } ];
+	let docs = [ {id: testName[currentIndex] + "MT" + recordCounter++,contenttype: validateContentType,testname: testName[currentIndex],metricsdata:Buffer.from(metricsData,"UTF-8").toString("base64") } ];
 	if( debug > 4 ) console.log(docs);
 	let conf = {hostname: validateSolrHost,port: validateSolrPort,path: validateSolrUpdatePath,method: 'POST',headers: {'Content-Type': 'application/json'}};
 
