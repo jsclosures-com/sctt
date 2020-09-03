@@ -1,0 +1,102 @@
+var http = require('http');
+//var zlib = require('zlib');
+
+var commandLine = {};
+
+process.argv.forEach((val, index) => {
+  console.log(`${index}: ${val}`);
+  if( index > 1 ){
+	let v = val;
+	
+	if( v.indexOf("=") ){
+		let name = v.substring(0,v.indexOf("="));
+		commandLine[name] = v.substring(v.indexOf("=")+1);
+	}
+  }
+});
+
+
+console.log("commandline",commandLine);
+
+//process.exit(0);
+
+var testName = commandLine.hasOwnProperty('testName') ? commandLine['testName'].split(",") : [];
+var metricsInterval = commandLine.hasOwnProperty('metricsInterval') ? commandLine['metricsInterval'] : 10000;
+
+var debug = commandLine.hasOwnProperty('debug') ? commandLine['debug'] : 1;
+var sourceSolrHost = commandLine.hasOwnProperty('sourceSolrHost') ? commandLine['sourceSolrHost'] : "localhost";
+var sourceSolrPort = commandLine.hasOwnProperty('sourceSolrPort') ? commandLine['sourceSolrPort'] : 8983;
+var sourceSolrPath = commandLine.hasOwnProperty('sourceSolrPath') ? commandLine['sourceSolrPath'] : "/solr/admin/metrics?wt=json";
+
+var validateSolrHost = commandLine.hasOwnProperty('validateSolrHost') ? commandLine['validateSolrHost'] : "localhost";
+var validateSolrPort = commandLine.hasOwnProperty('validateSolrPort') ? commandLine['validateSolrPort'] : 8983;
+var validateSolrUpdatePath = commandLine.hasOwnProperty('validateSolrUpdatePath') ? commandLine['validateSolrUpdatePath'] : "/solr/validate/update";
+
+
+function emitMetrics(){
+
+	let doMetrics = function(){
+		let currentIndex = this.currentIndex;
+		
+		if( debug > 0 ) console.log("current index",testName[currentIndex]);
+
+		getMetrics(currentIndex);
+
+		setTimeout(doMetrics.bind({currentIndex: currentIndex}),metricsInterval);
+		
+	}
+
+	for(let i in testName){
+		setTimeout(doMetrics.bind({currentIndex: i}),metricsInterval);	
+	}
+}
+
+function saveMetricsCallback(res) {
+  let str = "";
+  let currentIndex = this.currentIndex;
+  res.on('data', function (chunk) {
+              str += chunk;
+              
+        });
+
+  res.on('end', function () {
+        if( debug > 1 ) console.log("METRICSUPDATE",currentIndex,str);
+  });
+}
+var recordCounter = 0;
+
+function saveMetrics(currentIndex,metricsData){
+	let tCallback = saveMetricsCallback.bind({currentIndex: currentIndex});
+
+	let docs = [ {id: testName[currentIndex] + "MT" + recordCounter++,testname: testName[currentIndex],metricsdata:Buffer.from(metricsData,"UTF-8").toString("base64") } ];
+	if( debug > 4 ) console.log(docs);
+	let t = http.request({hostname: validateSolrHost,port: validateSolrPort,path: validateSolrUpdatePath,method: 'POST',headers: {'Content-Type': 'application/json'}}, tCallback);
+	t.on('error', function(e) {console.log("Got error: " + e.message);});
+	t.write(JSON.stringify(docs));
+	t.end();
+}
+
+function  metricsCallback(res) {
+  let str = "";
+  let currentIndex = this.currentIndex;
+  res.on('data', function (chunk) {
+              str += chunk;
+              
+        });
+
+  res.on('end', function () {
+        if( debug > 2 ) console.log("METRICSDATA",str);
+
+        saveMetrics(currentIndex,str);
+  });
+}
+
+function getMetrics(currentIndex){
+	var tCallback = metricsCallback.bind({currentIndex: currentIndex});
+	var t = http.get({host: sourceSolrHost,port: sourceSolrPort,path: sourceSolrPath},tCallback);
+}
+
+emitMetrics();
+
+
+
