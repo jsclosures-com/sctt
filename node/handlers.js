@@ -1040,6 +1040,145 @@ var HANDLERS = {
 		t.end();
 		
 		return( result );
+	},
+	"COLLECTMETRIC": function(args){
+		let result = {status: 1,message: "HANDLED"};
+		
+		var CONTEXT = args.CONTEXT;
+		var solrHost = CONTEXT.SOLRHOST;
+		var solrPort = CONTEXT.SOLRPORT;
+		var solrCollection = CONTEXT.SOLRCOLLECTION;
+		var solrPath = "/solr/" + solrCollection + "/select?q=*:*&wt=json&indent=on";
+		var collection = "^[a-zA-Z0-9._\/]+$";
+		var handler = "^[a-zA-Z0-9._\/]+$";
+		var metric = "^[a-zA-Z0-9._\/]+$";
+
+		if( args.queryObj.collection )
+			collection = args.queryObj.collection;
+		if( args.queryObj.handler )
+			handler = args.queryObj.handler;
+		if( args.queryObj.metric )
+			metric = args.queryObj.metric;
+
+		let testName = "default"; 
+
+		if( args.queryObj.testname )
+			testName = args.queryObj.testname;
+		
+		if( testName ){
+			solrPath += "&fq=contenttype:METRIC&fq=testname:" + testName;
+		}
+
+		if( args.queryObj._rows )
+			solrPath += '&rows=' + (args.queryObj._rows);
+		else 
+			solrPath += '&rows=1000';
+
+		if( args.queryObj._start )
+			solrPath += '&start=' + (args.queryObj._start);
+		else 
+			solrPath += '&start=0';
+
+		solrPath += '&sort=crawldate+asc';
+
+		if( CONTEXT.DEBUG > 1 ) console.log("solrpath",solrPath);
+
+		function analyzeIt(outputBuffer,inputObj,handler,collection,metric){
+			if( CONTEXT.DEBUG > 20 ) console.log(inputObj);
+	
+			if( inputObj ){	
+				if( !handler ) handler = '^[a-zA-Z0-9._\/]+$';
+				let handlerRegEx = new RegExp(handler);
+				if( !collection ) collection = '^[a-zA-Z0-9._\/]+$';
+				let collectionRegEx = new RegExp(collection);
+				if( !metric ) metric = '^[a-zA-Z0-9._\/]+$';
+				let metricRegEx = new RegExp(metric);
+				
+				let data = inputObj["metricsdata"][0];
+				data = JSON.parse(Buffer.from(data,"base64").toString("ascii")).metrics;
+				if( CONTEXT.DEBUG > 20 ) console.log("mdata",data);
+				for(let c in data){
+					//console.log(c);
+					if( collectionRegEx.test(c) ){
+						//console.log("do collection",c);
+						let currentHandler = data[c];
+						for(let h in currentHandler){
+							//console.log(h);
+							if( handlerRegEx.test(h) ){
+								//console.log("do handler",h);
+								let currentMetric = currentHandler[h];
+	
+								if( currentMetric["count"] >= 0 ){
+									for(let m in currentMetric){
+										//console.log(m);
+										if( metricRegEx.test(m) ){
+											if( CONTEXT.DEBUG > 30 ) console.log("do metric",m);
+											if( !outputBuffer.hasOwnProperty(c) )
+												outputBuffer[c] = {};
+											if( !outputBuffer[c].hasOwnProperty(h) )
+												outputBuffer[c][h] = {};
+											if( !outputBuffer[c][h].hasOwnProperty(m) )
+												outputBuffer[c][h][m] = [];
+											outputBuffer[c][h][m].push(currentMetric[m]);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			if( CONTEXT.DEBUG >  20 )
+				console.log(JSON.stringify(outputBuffer));
+			return outputBuffer;
+		}
+
+		var callback = function(res){
+			  var str = "";
+	  
+			  res.on('data', function (chunk) {
+						  str += chunk;
+						  
+					});
+
+			  res.on('end', function () {
+				if( CONTEXT.DEBUG > 20 ) console.log("export complete",str);
+					let data = JSON.parse(str);
+					let collectedMetrics = {};
+					if( data && data.response && data.response.docs ){
+						let docList = data.response.docs;
+						collectedMetrics.numFound = docList.length;
+						
+						collectedMetrics.docs = [];
+						let outputBuffer = {};
+						collectedMetrics.docs.push(outputBuffer);
+						for(let i in docList){
+							let m = docList[i];
+							
+							analyzeIt(outputBuffer,m,handler,collection,metric);
+						}
+					}
+					
+					args.callback({payload: JSON.stringify(collectedMetrics),headers: [{name: "Content-Type",value: "application/json"}]});
+			  });
+		}
+		var tCallback = callback;
+		
+		let tUrl = solrPath.replace(/ /g,"%20");
+
+		if( CONTEXT.DEBUG > 1 ) console.log('solr path',tUrl);
+		
+		let config = {host: solrHost,port: solrPort,path: tUrl,headers : {'Content-Type': 'application/json'}};
+			if( CONTEXT.AUTHKEY )
+				config.headers["Authorization"] = "Basic " + CONTEXT.AUTHKEY;
+			let t = CONTEXT.lib.http.request(config, tCallback);
+		t.on('error', function(e) {
+			if( CONTEXT.DEBUG > 0 ) console.log("Got error: " + e.message);
+				args.callback({error: e.message});
+		});
+		t.end();
+		
+		return( result );
 	}
 };
 

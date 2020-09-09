@@ -62,7 +62,14 @@ var context = {};
     
 
     var FIELDS = [
-	{
+    {
+        label: uiManager.getString("authKey"),
+        id: mainId + 'authkey',
+        name: mainId + 'authkey',
+        dataname: 'authkey',
+        type: 'TEXTFIELD'
+    },
+    {
         label: uiManager.getString("realTimeURL"),
         id: mainId + 'realtimeurl',
         name: mainId + 'realtimeurl',
@@ -219,7 +226,7 @@ var context = {};
         tObj.attr("value",'');
     };
     
-    var formHeight = dojo.isIE ? 450 : 480;
+    var formHeight = dojo.isIE ? 470 : 500;
     
     
     context.loadTargetHandler = function(target){

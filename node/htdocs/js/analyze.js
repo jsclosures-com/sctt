@@ -63,7 +63,8 @@ function resolveObject(recId){
 
 var padY = 10;
 var tabList = [{"id": mainForm + "realtime","label":"realTimeTabName","buildwith" : "buildRealTimePage","loadfile": "js/realtime.js"},
-            {"id": mainForm + "pagemetrics","label":"pageMetricsTabName","buildwith" : "buildPageMetricsPage","loadfile": "js/pagemetrics.js"}
+            {"id": mainForm + "pagemetrics","label":"pageMetricsTabName","buildwith" : "buildPageMetricsPage","loadfile": "js/pagemetrics.js"},
+            {"id": mainForm + "collectmetrics","label":"collectMetricsTabName","buildwith" : "buildCollectMetricsPage","loadfile": "js/collectmetrics.js"}
         ];            
     console.log("sample tab name ", tabList[0].id);
     console.log("compare tab name ", tabList[1].id);
