@@ -92,7 +92,13 @@ var HANDLERS = {
 			try{
 				let scriptToExecute = false;
 				
-				let script = Buffer.from(test[this.type], 'base64');
+				/*let script = Buffer.from(test[this.type], 'base64');
+
+				if( script.startsWith("ASSET:") ){
+
+				}*/
+
+				let script = test[this.type];
 				
 				eval('scriptToExecute = ' + script + ";");
 				
@@ -119,7 +125,7 @@ var HANDLERS = {
 			}
 			catch(ee){ console.log(ee);}*/
 		};
-		CONTEXT.lib.loadTest(testName,getTestCallback.bind({args: args,type: testType,name: testName}));
+		CONTEXT.lib.loadTest(testName,getTestCallback.bind({args: args,type: testType,name: testName}),testType);
 		
 		return( result );
 	},
@@ -1177,6 +1183,151 @@ var HANDLERS = {
 				args.callback({error: e.message});
 		});
 		t.end();
+		
+		return( result );
+	},
+	"ASSET": function(args){
+		let result = {status: 1,message: "HANDLED"};
+		
+		let action = "GET";
+		
+		if( args.queryObj.action )
+			action = args.queryObj.action;
+		
+		var CONTEXT = args.CONTEXT;
+		var solrHost = CONTEXT.SOLRHOST;
+		var solrPort = CONTEXT.SOLRPORT;
+		var solrCollection = CONTEXT.SOLRCOLLECTION;
+		
+		if( action === "GET" ){
+			var solrPath = "/solr/" + solrCollection + "/select?q=*:*&fq=contenttype:ASSET&wt=json&indent=on";
+			
+			if( args.queryObj._start )
+				solrPath += '&start=' + args.queryObj._start;
+
+			if( args.queryObj._rows )
+				solrPath += '&rows=' + args.queryObj._rows;
+
+			if( args.queryObj._sort ){
+				solrPath += '&sort=' + args.queryObj._sort;
+				if( args.queryObj._ascending ){
+					solrPath += '+asc';
+				}
+				else {
+					solrPath += '+desc';
+				}
+			}
+
+			var callback = function(res){
+				  var str = "";
+		  
+				  res.on('data', function (chunk) {
+							  str += chunk;
+							  
+						});
+
+				  res.on('end', function () {
+					    if( CONTEXT.DEBUG > 1 ) console.log("sample complete",str);
+						let data = {};
+						
+						try {
+							if( CONTEXT.DEBUG > 0 ) console.log(str);
+							data = JSON.parse(str);
+						}
+						catch(e){
+							if( CONTEXT.DEBUG > 0 ) console.log("TEST",e,str);
+						}
+						if( data.response && data.response.docs ){
+							result.items = data.response.docs;
+							result._totalItems = data.response.numFound;
+						}
+						args.callback(result);
+				  });
+			}
+			//var tCallback = callback.bind({field: fieldList[i]});
+			var tCallback = callback;
+			if( CONTEXT.DEBUG > 1 ) console.log('solr path',solrPath);
+			
+			let config = {host: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}};
+			if( CONTEXT.AUTHKEY )
+				config.headers["Authorization"] = "Basic " + CONTEXT.AUTHKEY;
+			let t = CONTEXT.lib.http.request(config, tCallback);
+			t.on('error', function(e) {
+				if( CONTEXT.DEBUG > 1 ) console.log("Got error: " + e.message);
+					args.callback({error: e.message});
+			});
+			t.end();
+		}
+		else if( action === 'POST' ){
+			var solrPath = "/solr/" + solrCollection + "/update";
+			var callback = function(res){
+				  var str = "";
+		  
+				  res.on('data', function (chunk) {
+							  str += chunk;
+							  
+						});
+
+				  res.on('end', function () {
+					if( CONTEXT.DEBUG > 1 ) console.log("update complete",str);
+						let data = JSON.parse(str);
+						
+						args.callback(data);
+				  });
+			}
+			var tCallback = callback;
+			if( CONTEXT.DEBUG > 1 ) console.log('solr path',solrPath);
+			
+			let config = {method: "POST",host: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}};
+			if( CONTEXT.AUTHKEY )
+				config.headers["Authorization"] = "Basic " + CONTEXT.AUTHKEY;
+			let t = CONTEXT.lib.http.request(config, tCallback);
+			t.on('error', function(e) {
+				if( CONTEXT.DEBUG > 1 ) console.log("Got error: " + e.message);
+					args.callback({error: e.message});
+			});
+			if( !args.queryObj.doc.id ){
+					args.queryObj.doc.id = "ASSET" + new Date().getTime();
+			}
+			args.queryObj.doc.contenttype = "ASSET";
+			let docs = {"add": {doc: args.queryObj.doc,"commitWithin": 500}};
+			t.write(JSON.stringify(docs));
+			t.end();
+		}
+		else if( action === 'DELETE' ){
+			var solrPath = "/solr/" + solrCollection + "/update";
+			var callback = function(res){
+				  var str = "";
+		  
+				  res.on('data', function (chunk) {
+							  str += chunk;
+							  
+						});
+
+				  res.on('end', function () {
+						if( CONTEXT.DEBUG > 0 ) console.log("update complete",str);
+						let data = JSON.parse(str);
+						
+						args.callback(data);
+				  });
+			}
+			var tCallback = callback;
+			if( CONTEXT.DEBUG > 1 ) console.log('solr path',solrPath);
+			
+			let config = {method: "POST",host: solrHost,port: solrPort,path: solrPath,headers : {'Content-Type': 'application/json'}};
+			if( CONTEXT.AUTHKEY )
+				config.headers["Authorization"] = "Basic " + CONTEXT.AUTHKEY;
+			let t = CONTEXT.lib.http.request(config, tCallback);
+			t.on('error', function(e) {
+				if( CONTEXT.DEBUG > 1 ) console.log("Got error: " + e.message);
+					args.callback({error: e.message});
+			});
+			let docs = {"delete": {id: args.queryObj.doc.id },"commit": {}};
+			if( CONTEXT.DEBUG > 1 ) console.log("Delete",docs);
+			t.write(JSON.stringify(docs));
+			t.end();
+			
+		}
 		
 		return( result );
 	}

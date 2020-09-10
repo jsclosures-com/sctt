@@ -9,6 +9,8 @@ var stream = require('stream');
 //var SSH2Client = require('ssh2-sftp-client'); 
 //var SSHClient = require('ssh2'); 
 var WebSocketServer = require('websocket').server;
+var utf8 = require("utf8");
+
 var getHandlers = require("./handlers.js").getHandlers;
 var HANDLERS = getHandlers();
 
@@ -88,7 +90,8 @@ var CONTEXT = {commandLine: commandLine,
 		fs: fs,
 		path: path,
 		stream: stream,
-	    readline: readline}};
+		readline: readline,
+		utf8: utf8}};
 
 function parseCookies (request) {
     var list = {},
@@ -476,14 +479,14 @@ function replaceAll(str,find){
 
 CONTEXT.lib.getRESTData = getRESTData;
 
-function loadTest(testName,callback,testType){
+function loadAsset(assetName,callback,assetType){
 	
 	let solrHost = SOLRHOST;
 	let solrPort = SOLRPORT;
-	let solrPath = "/solr/" + SOLRCOLLECTION + "/select?wt=json&rows=1&indent=on&q=*:*&fq=contenttype:TEST&fq=testname:" + testName;
+	let solrPath = "/solr/" + SOLRCOLLECTION + "/select?wt=json&rows=1&indent=on&q=*:*&fq=contenttype:ASSET&fq=assetname:" + assetName;
 	
-	if( testType ){
-		solrPath += "&fq=testtype:" + testType;
+	if( assetType ){
+		solrPath += "&fq=assettype:" + assetType;
 	}
 	
 	let queryCallback = function(res){
@@ -506,8 +509,82 @@ function loadTest(testName,callback,testType){
 					result = resp.response.docs[0];
 				}
 			}
-			//console.log("test",result);
+			
 			callback(result);
+	  });
+	}
+	
+	
+	let config = {host: solrHost,port: solrPort,path: solrPath};
+	if( AUTHKEY )
+		config.headers = {"Authorization": "Basic " + AUTHKEY};
+	let t = http.get(config, queryCallback);
+		t.on('error', function(e) {
+			if( DEBUG > 1 ) console.log("Got error: " + e.message);
+				args.callback({error: e.message});
+		});
+}
+
+CONTEXT.lib.loadTest = loadAsset;
+
+function loadTest(testName,callback,testType){
+	
+	let solrHost = SOLRHOST;
+	let solrPort = SOLRPORT;
+	let solrPath = "/solr/" + SOLRCOLLECTION + "/select?wt=json&rows=1&indent=on&q=*:*&fq=contenttype:TEST&fq=testname:" + testName;
+	
+	///if( testType ){
+	//	solrPath += "&fq=testtype:" + testType;
+	//}
+	
+	let queryCallback = function(res){
+		var str = "";
+		  
+	  res.on('data', function (chunk) {
+				  str += chunk;
+				  
+			});
+
+	  res.on('end', function () {
+			//console.log("testlookup",str);
+			
+			let resp = JSON.parse(str);
+			
+			var result = {};
+			
+			if( resp.response && resp.response.docs ){
+				if( resp.response.docs.length > 0 ){
+					result = resp.response.docs[0];
+				}
+			}
+			//console.log("test",result);
+
+			if( result[testType] ){
+				let script = Buffer.from(result[testType], 'base64').toString("ascii");
+
+				if( script.startsWith("ASSET:") ){
+					let assetName = script.substring("ASSET:".length);
+					if( DEBUG > 0 ) console.log("loading asset",assetName);
+					let cb = function(asset){
+						if( asset && asset["assetscript"] ){
+							script = Buffer.from(asset["assetscript"], 'base64').toString("ascii");
+							this.result[this.testType] = script;
+						}
+						this.callback(this.result);
+
+					}.bind({assetname: assetName,testType: testType,result: result,callback: callback});
+
+					loadAsset(assetName,cb,"script");
+
+				}
+				else {
+					result[testType] = script;
+
+					callback(result);
+				}
+			}
+			else
+				callback(result);
 	  });
 				  
 		

@@ -162,7 +162,8 @@ var context = {};
         console.log("mdata",data);
         let outputBuffer = {};
         let seriesData = {};
-
+        let min = 0;let max = input.numFound;
+        let miny = 0;let maxy = 0;
         for(let c in data){
             //console.log(c);
             if( collectionRegEx.test(c) ){
@@ -192,6 +193,9 @@ var context = {};
                                         seriesData[key] = [];
 
                                     seriesData[key].push( currentMetric[m]);
+
+                                    if( miny > currentMetric[m] ) miny = currentMetric[m];
+                                    if( maxy < currentMetric[m] ) maxy = currentMetric[m];
                                 }
                             }
                         }
@@ -206,6 +210,7 @@ var context = {};
         if( chartList.length > 0 ){
             let chart = chartList[0].chart;
 
+            
             if( chart.getSeries("DEFAULT") )
                 chart.removeSeries("DEFAULT");
             let counter = 0;
@@ -219,7 +224,12 @@ var context = {};
                 chart.addSeries(s,seriesDataList);
                 if( counter++ > 10 ) break;
             }
-            
+            chart.removeAxis("x");
+            chart.removeAxis("y");
+
+            chart.addAxis("x", { min: min, max: max});
+             chart.addAxis("y", { min: miny, max: maxy, vertical: true, fixLower: "major", fixUpper: "major" });
+
             chart.render();
             chartList[0].legend.refresh();
         }

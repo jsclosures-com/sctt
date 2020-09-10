@@ -67,6 +67,7 @@ function internalBuildMainPage(mainContext, mainId) {
     getCurrentContext().mainName = mainName;
 
 	var tabList = [
+					{"id": mainName + "systemtab","label":"systemTabName","buildwith" : "buildSystemPage","loadfile": "js/system.js"},
 					{"id": mainName + "testtab","label":"testTabName","buildwith" : "buildTestPage","loadfile": "js/test.js"},
 					{"id": mainName + "runnertab","label":"runnerTabName","buildwith" : "buildRunnerPage","loadfile": "js/runner.js"},
 					{"id": mainName + "resultstab","label":"resultsTabName","buildwith" : "buildResultsPage","loadfile": "js/results.js"},
