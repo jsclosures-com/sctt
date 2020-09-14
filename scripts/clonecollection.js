@@ -1,3 +1,6 @@
+/*
+	node ./clonecollection authKey="c29scjpTb2xyUm9ja3M=" debug=11 batchSize=10 sourceSolrCollection=validate destinationSolrCollection=validatecopy 
+*/
 var http = require('http');
 
 var commandLine = {};
