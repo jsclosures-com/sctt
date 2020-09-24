@@ -1,10 +1,9 @@
 var http = require('http');
 var https = require('https');
-var url = require("url");
 var fs = require('fs');
 var path = require('path');
 var readline = require('readline');
-var URL = require('url');
+var url = require('url');
 var stream = require('stream');
 //var SSH2Client = require('ssh2-sftp-client'); 
 //var SSHClient = require('ssh2'); 
@@ -39,6 +38,12 @@ var SOLRCOLLECTION="validate";
 var DEBUG = 0;
 var AUTHKEY = false;
 var AUTHMODE = false;
+var LEADER = false;
+var LEADERCHECK = 1000;
+var WORKERS = false;
+var WORKERSCHECK = 1000;
+var WORKERLIFE = 5000;
+var WORKER = "worker";
 
 var commandLine = {};
 
@@ -75,6 +80,20 @@ if( commandLine.hasOwnProperty("authkey") )
 	AUTHKEY = commandLine.authkey;
 if( commandLine.hasOwnProperty("authmode") )
 	AUTHMODE = commandLine.authmode;
+if( commandLine.hasOwnProperty("leader") )
+	LEADER = commandLine.leader;
+if( commandLine.hasOwnProperty("leadercheck") )
+	LEADERCHECK = parseInt(commandLine.leadercheck);
+if( commandLine.hasOwnProperty("workers") )
+	WORKERS = commandLine.workers == 'true';
+if( commandLine.hasOwnProperty("leadercheck") )
+	WORKERSCHECK = commandLine.workerscheck;
+if( commandLine.hasOwnProperty("workerlife") )
+	WORKERLIFE = parseInt(commandLine.workerlife);
+if( commandLine.hasOwnProperty("worker") )
+	WORKER = commandLine.worker;
+else
+	WORKER = WORKER + new Date().getTime();
 
 var CONTEXT = {commandLine: commandLine,
 	PORT: PORT,
@@ -84,14 +103,149 @@ var CONTEXT = {commandLine: commandLine,
 	DEBUG:DEBUG,
 	AUTHKEY:AUTHKEY,
 	AUTHMODE:AUTHMODE,
+	LEADER:LEADER,
+	LEADERCHECK:LEADERCHECK,
+	WORKER: WORKER,
 	lib: {http: http,
 		https: https,
-		URL: URL,
+		URL: url,
 		fs: fs,
 		path: path,
 		stream: stream,
 		readline: readline,
 		utf8: utf8}};
+
+
+//var WORKQUEUE = false;
+//fake work
+var WORKQUEUE = [{"id": 1,script: "function(){ console.log('hello'); }"}];
+var WORKERLIST = [];
+
+function workCompleted(requestObj){
+	let work = requestObj.work;
+	let worker = requestObj.worker;
+	let status = requestObj.status;
+
+	if( status == 'OK' ){
+		for(let i in WORKERLIST){
+			if( WORKLIST[i].id = worker ){
+				WOWORKLIST.splice(i,1);
+				break;
+			}
+		}
+	}
+	else {
+		WORKQUEUE.push(work);
+	}
+
+}
+
+function assignWork(){
+	let timeNow = new Date().getTime();
+	
+	for(let i in WORKERLIST){
+		let worker = WORKERLIST[i];
+		if( !worker.isWorking ){
+			if( timeNow - worker.timestamp < WORKERLIFE ){
+				let work = WORKQUEUE.pop();
+				if( work ){
+					worker.result.work = [work];
+					worker.result.worker = worker.id;
+					worker.workingOn = work;
+				}
+			}
+			else {
+				worker.response.end(JSON.stringify(worker.result));
+			}
+
+			worker.isWorking = true;
+		}
+	}
+} 
+
+if( WORKERS ){
+	setTimeout(assignWork.bind({CONTEXT:CONTEXT}),CONTEXT.WORKERCHECK);
+}
+
+function postWorker(args){
+	WORKERLIST.push(args);
+}
+
+function followTheLeader(){
+	let CONTEXT = this.CONTEXT;
+	if( CONTEXT.DEBUG > 0 ) console.log("following the leader",CONTEXT.LEADER);
+
+	let callback = function(res){
+		let str = "";
+		let CONTEXT = this.CONTEXT;
+
+		res.on('data', function (chunk) {
+					str += chunk;
+				});
+
+		res.on('end', function () {
+			let data = JSON.parse(str);
+
+			if( CONTEXT.DEBUG > 0 ) console.log("leader response",data);
+
+			if( data.work && data.work.length > 0 ){
+				let work = data.work[0];
+				if( CONTEXT.DEBUG > 0 ) console.log("work to do",work);
+
+				let leaderInfo = url.parse(CONTEXT.LEADER);
+				if( CONTEXT.DEBUG > 0 ) console.log("leader info", leaderInfo);
+
+				let config = {method: "POST",host: leaderInfo.hostname,port: leaderInfo.port,path: leaderInfo.path + "/complete"};
+				if( AUTHKEY )
+					config.headers = {"Authorization": "Basic " + AUTHKEY};
+
+				let cb = function(res){
+					let str = "";
+					let CONTEXT = this.CONTEXT;
+			
+					res.on('data', function (chunk) {
+								str += chunk;
+							});
+			
+					res.on('end', function () {
+						if( CONTEXT.DEBUG > 0 ) console.log("work complete",str);
+					});
+				}
+
+				let t = http.request(config, cb.bind({CONTEXT: CONTEXT}));
+				t.on('error', function(e) {
+						if( CONTEXT.DEBUG > 1 ) console.log("Got error: " + e.message);
+				});
+
+				t.write(JSON.stringify({work: work,status: "OK"}));
+				t.end();
+			}
+			else {
+				if( CONTEXT.DEBUG > 0 ) console.log("no work to do");
+			}
+
+			setTimeout(followTheLeader.bind({CONTEXT: CONTEXT}),CONTEXT.LEADERCHECK);
+		});
+	}
+
+	let leaderInfo = url.parse(CONTEXT.LEADER);
+	if( CONTEXT.DEBUG > 0 ) console.log("leader info", leaderInfo);
+
+	let config = {method: 'POST',host: leaderInfo.hostname,port: leaderInfo.port,path: leaderInfo.path};
+	if( AUTHKEY )
+		config.headers = {"Authorization": "Basic " + AUTHKEY};
+
+	let t = http.request(config, callback.bind({CONTEXT: CONTEXT}));
+	t.on('error', function(e) {
+		if( CONTEXT.DEBUG > 1 ) console.log("Got error: " + e.message);
+	});
+	t.write(JSON.stringify({worker: CONTEXT.WORKER}));
+	t.end();
+}
+
+if( LEADER ){
+	setTimeout(followTheLeader.bind({CONTEXT: CONTEXT}),LEADERCHECK);
+}
 
 function parseCookies (request) {
     var list = {},
@@ -148,7 +302,21 @@ function actualHandleRequest(request, response,bodyData){
 	var pathname = requestObj.pathname;
 	if( DEBUG > 1 ) console.log(pathname,requestUrl);
 	
-    if( requestUrl.lastIndexOf('/authservice',0) > -1 ){
+	if( requestUrl.lastIndexOf('/worker/complete',0) > -1 ){
+		
+		workCompleted(requestObj);
+
+		response.end(JSON.stringify(result));
+	}
+	else if( requestUrl.lastIndexOf('/worker',0) > -1 ){
+		//TODO register server as worker 
+		//worker sends {"status": "OK"}  server responds {"respond": 1000,"work": []}
+		//work = {"id": uid,script: base64 compressed zip}
+		postWorker({response: response,result: result,timestamp: new Date().getTime(),id: requestObj.worker });
+
+		//response.end(JSON.stringify(result));
+	}
+    else if( requestUrl.lastIndexOf('/authservice',0) > -1 ){
     	//handle auth request
     	if( contentType === 'AUTH' ){
     		var cookieObj = parseCookies(request);
@@ -467,6 +635,7 @@ function getRESTData(args){
 				if( DEBUG > 1 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
+	t.end();
 }
 
 CONTEXT.lib.getRESTData = getRESTData;
@@ -523,6 +692,7 @@ function loadAsset(assetName,callback,assetType){
 			if( DEBUG > 1 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
+	t.end();
 }
 
 CONTEXT.lib.loadTest = loadAsset;
@@ -599,6 +769,7 @@ function loadTest(testName,callback,testType){
 			if( DEBUG > 1 ) console.log("Got error: " + e.message);
 				args.callback({error: e.message});
 		});
+	t.end();
 }
 
 CONTEXT.lib.loadTest = loadTest;

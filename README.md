@@ -3,7 +3,7 @@ search configuration tracking tool
 
 create config set
 
-D:\apps\solr-8.2.0>server\scripts\cloud-scripts\zkcli.bat -cmd upconfig -z localhost:9983 -confdir D:\aworkspace\sctt\validate\conf -confname validate
+D:\apps\solr-8.2.0\server\scripts\cloud-scripts\zkcli.bat -cmd upconfig -z localhost:9983 -confdir D:\aworkspace\jsclosures\sctt\git\validate\conf -confname validate
 
 create collection 
 

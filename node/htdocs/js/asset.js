@@ -87,7 +87,7 @@ var CONTENTTYPE = "ASSET";
                                                                         tabPosition: "top",
                                                                         tabStrip: "true",
                                                                         title: uiManager.getString("scriptManager"),
-                                                                        style: "width: " + (getCurrentContext().screenWidth-170) + "px;height:" + (getCurrentContext().screenHeight-454) + "px;"
+                                                                        style: "width: " + (getCurrentContext().screenWidth-170) + "px;height:" + (getCurrentContext().screenHeight-500) + "px;"
                                                                    });
             let fieldList = field.list;
 
