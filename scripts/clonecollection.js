@@ -19,52 +19,7 @@ process.argv.forEach((val, index) => {
 
 
 if( debug > 0 ) console.log("commandline",commandLine);
-
-//process.exit(0);
-
-var batchSize = commandLine.hasOwnProperty('batchSize') ? commandLine['batchSize'] : 10;
-var sourceSolrIdField = commandLine.hasOwnProperty('sourceSolrIdField') ? commandLine['sourceSolrIdField'] : "id";
-var sourceSolrQuery = commandLine.hasOwnProperty('sourceSolrQuery') ? commandLine['sourceSolrQuery'] : "*:*";
-
-var sourceSolrHost = commandLine.hasOwnProperty('sourceSolrHost') ? commandLine['sourceSolrHost'] : "localhost";
-var sourceSolrPort = commandLine.hasOwnProperty('sourceSolrPort') ? commandLine['sourceSolrPort'] : 8983;
-var sourceSolrCollection = commandLine.hasOwnProperty('sourceSolrCollection') ? commandLine['sourceSolrCollection'] : 'validate';
-var sourceSolrPath = commandLine.hasOwnProperty('sourceSolrPath') ? commandLine['sourceSolrPath'] : "/solr/" + sourceSolrCollection + "/select?wt=json&sort=" + sourceSolrIdField + "+asc&rows=" + batchSize + "&q=" + sourceSolrQuery;
-
-var destinationSolrHost = commandLine.hasOwnProperty('destinationSolrHost') ? commandLine['destinationSolrHost'] : "localhost";
-var destinationSolrPort = commandLine.hasOwnProperty('destinationSolrPort') ? commandLine['destinationSolrPort'] : 8983;
-var destinationSolrCollection = commandLine.hasOwnProperty('destinationSolrCollection') ? commandLine['destinationSolrCollection'] : "validatecopy";
-var destinationSolrUpdatePath = commandLine.hasOwnProperty('destinationSolrUpdatePath') ? commandLine['destinationSolrUpdatePath'] : "/solr/" + destinationSolrCollection + "/update";
-var async  = (commandLine.hasOwnProperty('async') ? commandLine['async'] : "true") == 'false';
-var runForever  = (commandLine.hasOwnProperty('runForever') ? commandLine['runForever'] : "false") == 'true';
-var fieldsToExclude = commandLine.hasOwnProperty('fieldsToExclude') ? commandLine['fieldsToExclude'].split(",") : [];
-var authKey = commandLine.hasOwnProperty('authKey') ? commandLine['authKey'] : false;
-var debug = commandLine.hasOwnProperty('debug') ? commandLine['debug'] : 0;
-
-var HANDLERS = {
-	documents:  function(args){
-		copyDocuments(args.docs,args.hasMore);
-	},
-	eachdocuments:  function(args){
-		let docs = args.docs;
-
-		let ctx = {docs: args.docs,hasMore: args.hasMore,docListSize: docs.length};
-
-		let finalCB = function(){
-			copyDocuments(this.context.docs,this.context.hasMore);
-		}.bind({context: ctx});
-
-		let localCB = function(res){
-			let str = "";
-			let context = this.context;
-			let index = this.index;
-			let doc = this.doc;
-
-			res.on('data', function (chunk) {
-						str += chunk;
-					});
-
-			res.on('end', function () {
+ 
 				let data = JSON.parse(str);
 
 				if( debug > 1 ) console.log("query complete",str);
@@ -87,11 +42,17 @@ var HANDLERS = {
 
 				if( context.docListSize == 0 )
 					finalCB();
+				else if( index+1 < context.docs.length )
+					nextCB(index+1);
 			});
 		};
 
-		for(let i in docs){
-			let doc = docs[i];
+		let nextCB = function(index){
+			let doc = this.context.docs[index];
+			docLoop(ctx,index,doc);
+		}.bind({context: ctx});
+
+		let docLoop = function(ctx,i,doc){
 			let tSourceSolrPath = "/solr/" + sourceSolrCollection + "/select?wt=json&rows=1000&q=*:*";
 			//tSourceSolrPath += tSourceSolrPath + "&fq=TC_0Y0_Item_0Y0_Item_uid:" + doc["TC_0Y0_Item_0Y0_Item_uid"];
 
@@ -105,7 +66,8 @@ var HANDLERS = {
 			t.on('error', function(e) {console.log("Got error: " + e.message);});
 			t.end();
 		}
-		
+
+		nextCB(0);
 	}
 };
 

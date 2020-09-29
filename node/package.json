@@ -1,0 +1,28 @@
+{
+  "name": "sctt",
+  "version": "1.0.0",
+  "description": "search change tracking tool",
+  "main": "server.js",
+  "scripts": {
+    "test": "node .\\server.js",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsclosures-com/sctt.git"
+  },
+  "keywords": [
+    "before",
+    "after",
+    "search",
+    "configuration",
+    "change",
+    "tracking"
+  ],
+  "author": "harcor",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jsclosures-com/sctt/issues"
+  },
+  "homepage": "https://github.com/jsclosures-com/sctt#readme"
+}
