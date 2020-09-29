@@ -260,25 +260,27 @@ var CONTENTTYPE = "TEST";
         console.log("load",rec);
         let isAdmin = getCurrentContext().SessionManager.getAttribute("userId") == 'admin';
         enableEditorTabs(isAdmin);
-        
-		if( rec.testharvestscript )
-			rec.testharvestscript = atob(rec.testharvestscript);
-		if( rec.testcopyscript )
-			rec.testcopyscript = atob(rec.testcopyscript);
-		if( rec.testextractscript )
-			rec.testextractscript = atob(rec.testextractscript);
-			
-		if( rec.testinterpretscript )
-			rec.testinterpretscript = atob(rec.testinterpretscript);
-		
-		if( rec.testbuildscript )
-			rec.testbuildscript = atob(rec.testbuildscript);
-		if( rec.testsummaryscript )
-            rec.testsummaryscript = atob(rec.testsummaryscript);
-        if( rec.testnotes )
-            rec.testnotes = atob(rec.testnotes);
-        if( rec.testdetailscript )
-			rec.testdetailscript = atob(rec.testdetailscript);
+        try {
+            if( rec.testharvestscript )
+                rec.testharvestscript = atob(rec.testharvestscript);
+            if( rec.testcopyscript )
+                rec.testcopyscript = atob(rec.testcopyscript);
+            if( rec.testextractscript )
+                rec.testextractscript = atob(rec.testextractscript);
+                
+            if( rec.testinterpretscript )
+                rec.testinterpretscript = atob(rec.testinterpretscript);
+            
+            if( rec.testbuildscript )
+                rec.testbuildscript = atob(rec.testbuildscript);
+            if( rec.testsummaryscript )
+                rec.testsummaryscript = atob(rec.testsummaryscript);
+            if( rec.testnotes )
+                rec.testnotes = atob(rec.testnotes);
+            if( rec.testdetailscript )
+                rec.testdetailscript = atob(rec.testdetailscript);
+        }
+        catch(e){ console.log("unable to dcode");}
 	}
 	
    context.xxxstore = new com.ibm.JsonRestStoreMessage({

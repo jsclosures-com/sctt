@@ -66,6 +66,10 @@ process.argv.forEach((val, index) => {
 
 if( DEBUG > 1 ) console.log("commandline",commandLine);
 
+if( commandLine.info ){
+	console.log("node .\server.js authkey=c29scjpTb2xyUm9ja3M= debug=11");
+	process.exit(0);
+}
 if( commandLine.hasOwnProperty("port") )
 	PORT = parseInt(commandLine.port);
 if( commandLine.hasOwnProperty("solrhost") )

@@ -249,11 +249,14 @@ var CONTENTTYPE = "ASSET";
         let isAdmin = getCurrentContext().SessionManager.getAttribute("userId") == 'admin';
         enableEditorTabs(isAdmin);
         
-		if( rec.assetscript )
-			rec.assetscript = atob(rec.assetscript);
-		
-        if( rec.assetnotes )
-			rec.assetnotes = atob(rec.assetnotes);
+        try {
+            if( rec.assetscript )
+                rec.assetscript = atob(rec.assetscript);
+            
+            if( rec.assetnotes )
+                rec.assetnotes = atob(rec.assetnotes);
+        }
+        catch(e){ console.log("failed to decode"); }
     }
     
     function enableEditorTabs(mode){
