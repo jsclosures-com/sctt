@@ -24,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/jsclosures-com/sctt/issues"
   },
-  "homepage": "https://github.com/jsclosures-com/sctt#readme"
+  "homepage": "https://github.com/jsclosures-com/sctt#readme",
+  "devDependencies": {
+    "eslint": "^7.12.1"
+  }
 }
