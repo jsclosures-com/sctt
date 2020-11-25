@@ -16,24 +16,23 @@ process.argv.forEach((val, index) => {
 });
 
 //node ./collectionmectrics.js validateSolrHost=localhost sourceSolrHost=localhost metricsInterval=1000
-console.log("commandline",commandLine);
-
 //process.exit(0);
 
-var testName = commandLine.hasOwnProperty('testName') ? commandLine['testName'].split(",") : [];
+var testName = Object.prototype.hasOwnProperty.call(commandLine,'testName') ? commandLine['testName'].split(",") : [];
 var metricsInterval = commandLine.hasOwnProperty('metricsInterval') ? commandLine['metricsInterval'] : 10000;
 
-var debug = commandLine.hasOwnProperty('debug') ? commandLine['debug'] : 1;
-var sourceSolrHost = commandLine.hasOwnProperty('sourceSolrHost') ? commandLine['sourceSolrHost'] : "localhost";
-var sourceSolrPort = commandLine.hasOwnProperty('sourceSolrPort') ? commandLine['sourceSolrPort'] : 8983;
-var sourceSolrPath = commandLine.hasOwnProperty('sourceSolrPath') ? commandLine['sourceSolrPath'] : "/solr/admin/metrics?wt=json";
+var debug = Object.prototype.hasOwnProperty.call(commandLine,'debug') ? commandLine['debug'] : 1;
+var sourceSolrHost = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrHost') ? commandLine['sourceSolrHost'] : "localhost";
+var sourceSolrPort = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrPort') ? commandLine['sourceSolrPort'] : 8983;
+var sourceSolrPath = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrPath') ? commandLine['sourceSolrPath'] : "/solr/admin/metrics?wt=json";
 
-var validateSolrHost = commandLine.hasOwnProperty('validateSolrHost') ? commandLine['validateSolrHost'] : "localhost";
-var validateSolrPort = commandLine.hasOwnProperty('validateSolrPort') ? commandLine['validateSolrPort'] : 8983;
-var validateSolrUpdatePath = commandLine.hasOwnProperty('validateSolrUpdatePath') ? commandLine['validateSolrUpdatePath'] : "/solr/validate/update";
-var validateContentType = commandLine.hasOwnProperty('validateContentType') ? commandLine['validateContentType'] : "METRIC"; 
+var validateSolrHost = Object.prototype.hasOwnProperty.call(commandLine,'validateSolrHost') ? commandLine['validateSolrHost'] : "localhost";
+var validateSolrPort = Object.prototype.hasOwnProperty.call(commandLine,'validateSolrPort') ? commandLine['validateSolrPort'] : 8983;
+var validateSolrUpdatePath = Object.prototype.hasOwnProperty.call(commandLine,'validateSolrUpdatePath') ? commandLine['validateSolrUpdatePath'] : "/solr/validate/update";
+var validateContentType = Object.prototype.hasOwnProperty.call(commandLine,'validateContentType') ? commandLine['validateContentType'] : "METRIC"; 
+var authKey = Object.prototype.hasOwnProperty.call(commandLine,'authKey') ? commandLine['authKey'] : '';
 
-var authKey = commandLine.hasOwnProperty('authKey') ? commandLine['authKey'] : false;
+if( debug > 0 ) console.log("commandline",commandLine);
 
 
 function emitMetrics(){
@@ -108,6 +107,8 @@ function getMetrics(currentIndex){
 		conf.headers['Authorization'] = 'Basic ' + authKey;
 	}
 	var t = http.get(conf,tCallback);
+	t.on('error', function(e) {console.log("Got error: " + e.message);});
+	t.end();
 }
 
 emitMetrics();

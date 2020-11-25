@@ -1,5 +1,7 @@
 /*
-	node ./clonecollection authKey="c29scjpTb2xyUm9ja3M=" debug=11 batchSize=10 sourceSolrCollection=validate destinationSolrCollection=validatecopy 
+	node ./automicaupdate authKey="c29scjpTb2xyUm9ja3M=" debug=11 batchSize=10 sourceSolrCollection=validate destinationSolrCollection=validatecopy 
+
+	{"id": "2","source_s": "a"}
 */
 var http = require('http');
 
@@ -17,43 +19,25 @@ process.argv.forEach((val, index) => {
   }
 });
 
-
-
 var batchSize = Object.prototype.hasOwnProperty.call(commandLine,'batchSize') ? commandLine['batchSize'] : 10;
 var sourceSolrIdField = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrIdField') ? commandLine['sourceSolrIdField'] : "id";
 var sourceSolrQuery = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrQuery') ? commandLine['sourceSolrQuery'] : "*:*";
 
 var sourceSolrHost = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrHost') ? commandLine['sourceSolrHost'] : "localhost";
 var sourceSolrPort = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrPort') ? commandLine['sourceSolrPort'] : 8983;
-var sourceSolrCollection = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrCollection') ? commandLine['sourceSolrCollection'] : 'validate';
+var sourceSolrCollection = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrCollection') ? commandLine['sourceSolrCollection'] : 'test';
 var sourceSolrPath = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrPath') ? commandLine['sourceSolrPath'] : "/solr/" + sourceSolrCollection + "/select?wt=json&sort=" + sourceSolrIdField + "+asc&rows=" + batchSize + "&q=" + sourceSolrQuery;
-
-var destinationSolrHost = Object.prototype.hasOwnProperty.call(commandLine,'destinationSolrHost') ? commandLine['destinationSolrHost'] : "localhost";
-var destinationSolrPort = Object.prototype.hasOwnProperty.call(commandLine,'destinationSolrPort') ? commandLine['destinationSolrPort'] : 8983;
-var destinationSolrCollection = Object.prototype.hasOwnProperty.call(commandLine,'destinationSolrCollection') ? commandLine['destinationSolrCollection'] : 'validate20';
-var destinationSolrUpdatePath = Object.prototype.hasOwnProperty.call(commandLine,'destinationSolrUpdatePath') ? commandLine['destinationSolrUpdatePath'] : "/solr/" + destinationSolrCollection + "/update";
+var sourceSolrUpdatePath = Object.prototype.hasOwnProperty.call(commandLine,'sourceSolrUpdatePath') ? commandLine['sourceSolrUpdatePath'] : "/solr/" + sourceSolrCollection + "/update";
+var updateField = Object.prototype.hasOwnProperty.call(commandLine,'updateField') ? commandLine['updateField'] : 'source_s';
+var updateValue = Object.prototype.hasOwnProperty.call(commandLine,'updateValue') ? JSON.parse(commandLine['updateValue']) : JSON.parse('{"set": "b"}');
 var authKey = Object.prototype.hasOwnProperty.call(commandLine,'authKey') ? commandLine['authKey'] : '';
-var fieldsToExclude = Object.prototype.hasOwnProperty.call(commandLine,'fieldsToExclude') ? commandLine['fieldsToExclude'].split(',') : [];
-var runForever = Object.prototype.hasOwnProperty.call(commandLine,'runForever') ? commandLine['runForever'] === 'true' : false;
 var async = Object.prototype.hasOwnProperty.call(commandLine,'async') ? commandLine['async'] === 'true' : false;
 var debug = Object.prototype.hasOwnProperty.call(commandLine,'debug') ? commandLine['debug'] : 0;
 
 if( debug > 0 ) console.log("commandline",commandLine);
 
+
 var cursorMark = "*";
-var HANDLERS = false;
-
-function inExcludeList(fieldName){
-	let result = false;
-        for(let i in fieldsToExclude){
-		if( fieldName.indexOf(fieldsToExclude[i]) > -1 ){
-			result = true;
-			break;
-		}
-	}
-
-	return( result );
-}
 
 function queryCallback(res) {
   var str = "";
@@ -74,29 +58,25 @@ function queryCallback(res) {
 				let doc = data.response.docs[d];
 				for( let p in doc){
 					if( Object.prototype.hasOwnProperty.call(doc,p) ){
-						if( p === '_version_' || p === 'score' || inExcludeList(p) ){
-							
+						if( p === '_version_' || p === 'score' ){
 							delete doc[p];
 						}
+					}
+
+					if( updateField && p === updateField ){
+						doc[updateField] = updateValue;
 					}
 				}
 				
 			}
 			
-			if( HANDLERS && HANDLERS["documents"] )
-				HANDLERS["documents"]({docs: data.response.docs,hasMore: data.nextCursorMark && data.nextCursorMark != cursorMark});
-			else
-				copyDocuments(data.response.docs,data.nextCursorMark && data.nextCursorMark != cursorMark);
+			updateDocuments(data.response.docs,data.nextCursorMark && data.nextCursorMark != cursorMark && data.response.docs.length == batchSize);
 		}
 		//console.log(data);
 		if( data.nextCursorMark ){
-			if( cursorMark != data.nextCursorMark ){	
+			if( cursorMark != data.nextCursorMark && data.response.docs.length == batchSize ){	
 				cursorMark = data.nextCursorMark;
 				if( async ) loadQueryBatch(cursorMark);
-			}
-			else {
-				console.log("complete");
-				doCommit();
 			}
 		}
   });
@@ -105,6 +85,7 @@ function queryCallback(res) {
 function updateCallback(res) {
   var str = "";
   var hasMore = this.hasMore;
+  var updateInfo = this.updateInfo;
 
   res.on('data', function (chunk) {
               str += chunk;
@@ -112,10 +93,19 @@ function updateCallback(res) {
         });
 
   res.on('end', function () {
-        if( debug > 0 ) console.log("UPDATE",hasMore,str);
-	if( !async && hasMore ){
-		loadQueryBatch(cursorMark);
-	}
+		updateInfo.count++;
+		if( debug > 0 ) console.log("UPDATE",hasMore,str);
+	
+		if( updateInfo.count >= updateInfo.total ){
+			if( !async && hasMore ){
+				loadQueryBatch(cursorMark);
+			}
+			if( !hasMore ){
+				console.log("complete");
+				doCommit();
+			}
+		}
+        
   });
 }
 
@@ -127,19 +117,14 @@ function commitCallback(res) {
         });
 
   res.on('end', function () {
-        console.log("COMMIT",str);
-
-	if( runForever ){
-		cursorMark = "*";
-		loadQueryBatch(cursorMark);
-	}
+     if( debug > 1 ) console.log("COMMIT",str);
   });
 }
 
-function copyDocuments(docs,hasMore){
-	let tCallback = updateCallback.bind({hasMore: hasMore});
+function updateDocuments(docs,hasMore){
+	let tCallback = updateCallback.bind({hasMore: hasMore,updateInfo: {total: 1,count: 0}});
 	//console.log("hasmore",hasMore);
-	let conf = {hostname: destinationSolrHost,port: destinationSolrPort,path: destinationSolrUpdatePath,method: 'POST',headers: {'Content-Type': 'application/json'}}
+	let conf = {hostname: sourceSolrHost,port: sourceSolrPort,path: sourceSolrUpdatePath,method: 'POST',headers: {'Content-Type': 'application/json'}}
 
 	if( authKey ){
 		conf.headers['Authorization'] = 'Basic ' + authKey;
@@ -170,7 +155,7 @@ function doCommit(){
 
 	var tCallback = commitCallback.bind({});
 
-	let conf = {host: destinationSolrHost,port: destinationSolrPort,path: destinationSolrUpdatePath + "?stream.body=<commit/>"};
+	let conf = {host: sourceSolrHost,port: sourceSolrPort,path: sourceSolrUpdatePath + "?commit=true"};
 
 	if( authKey ){
 		conf.headers = {};
