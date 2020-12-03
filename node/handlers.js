@@ -184,12 +184,17 @@ var HANDLERS = {
 
 			res.on('end', function () {
 				console.log("sample complete", str);
-				let data = JSON.parse(str);
-				if (data.response && data.response.docs) {
-					let docs = data.response.docs;
+				try {
+					let data = JSON.parse(str);
+					if (data.response && data.response.docs) {
+						let docs = data.response.docs;
 
-					result.items = docs;
-					result._totalItems = data.response.numFound;
+						result.items = docs;
+						result._totalItems = data.response.numFound;
+					}
+				}
+				catch(exp){
+					if (CONTEXT.DEBUG > 0) console.log("handler error", exp);
 				}
 				args.callback(result);
 			});
@@ -252,10 +257,15 @@ var HANDLERS = {
 
 				res.on('end', function () {
 					if (CONTEXT.DEBUG > 0) console.log("sample complete", str);
-					let data = JSON.parse(str);
-					if (data.response && data.response.docs) {
-						result.items = data.response.docs;
-						result.count = data.response.numFound;
+					try {
+						let data = JSON.parse(str);
+						if (data.response && data.response.docs) {
+							result.items = data.response.docs;
+							result.count = data.response.numFound;
+						}
+					}
+					catch(exp){
+						if (CONTEXT.DEBUG > 0) console.log("handler error", exp);
 					}
 					args.callback(result);
 				});
@@ -343,10 +353,15 @@ var HANDLERS = {
 
 			res.on('end', function () {
 				if (CONTEXT.DEBUG > 1) console.log("sample complete", str);
-				let data = JSON.parse(str);
-				if (data.response && data.response.docs) {
-					result.items = data.response.docs;
-					result._totalItems = data.response.numFound;
+				try {
+					let data = JSON.parse(str);
+					if (data.response && data.response.docs) {
+						result.items = data.response.docs;
+						result._totalItems = data.response.numFound;
+					}
+				}
+				catch(exp){
+					if (CONTEXT.DEBUG > 0) console.log("handler error", exp);
 				}
 				args.callback(result);
 			});
@@ -412,10 +427,15 @@ var HANDLERS = {
 
 				res.on('end', function () {
 					if (CONTEXT.DEBUG > 1) console.log("sample complete", str);
-					let data = JSON.parse(str);
-					if (data.response && data.response.docs) {
-						result.items = data.response.docs;
-						result._totalItems = data.response.numFound;
+					try {
+						let data = JSON.parse(str);
+						if (data.response && data.response.docs) {
+							result.items = data.response.docs;
+							result._totalItems = data.response.numFound;
+						}
+					}
+					catch(exp){
+						if (CONTEXT.DEBUG > 0) console.log("handler error", exp);
 					}
 					args.callback(result);
 				});
