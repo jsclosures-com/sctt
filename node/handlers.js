@@ -991,10 +991,11 @@ var HANDLERS = {
 			});
 		}
 
-		let config = { method: "GET", host: solrHost, port: solrPort, path: solrPath, headers: {} };
+		let config = { method: "GET", host: solrHost, port: solrPort, path: solrPath, headers: {} ,rejectUnauthorized: false};
 		if (CONTEXT.AUTHKEY)
 			config.headers["Authorization"] = "Basic " + CONTEXT.AUTHKEY;
-		let t = CONTEXT.lib.http.request(config, callback);
+
+		let t = url.indexOf("https") > -1 ? CONTEXT.lib.https.request(config, callback) : CONTEXT.lib.http.request(config, callback);
 		t.on('error', function (e) {
 			if (CONTEXT.DEBUG > 0) console.log("Got error: " + e.message);
 			args.callback({ error: e.message });
