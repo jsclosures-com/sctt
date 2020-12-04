@@ -262,8 +262,10 @@ function parseCookies(request) {
 		rc = request.headers.cookie;
 
 	rc && rc.split(';').forEach(function (cookie) {
-		var parts = cookie.split('=');
-		list[parts.shift().trim()] = decodeURI(parts.join('='));
+		let parts = cookie.split('=');
+		let value = decodeURI(parts.join('='));
+		if( value && value != 'undefined' )
+			list[parts.shift().trim()] = value;
 	});
 
 	return list;
